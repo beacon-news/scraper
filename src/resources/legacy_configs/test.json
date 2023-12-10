@@ -1,0 +1,52 @@
+  {
+    "pages": [
+      {
+        "url": "https://www.bbc.com/news/world",
+        "path_patterns": [
+          "^/news/world-.*-.*"
+        ],
+        "selectors": {
+          "key": "some_key",
+          "selector": "div",
+          "children": [
+            {
+              "key": "child_key",
+              "selector": "p",
+              "child": {
+                "key": "child_child_key",
+                "selector": "span"
+              }
+            },
+            {
+              "key": "other_child_key",
+              "selector": ".class",
+              "children": [
+                {
+                  "key": "other_child_child_key",
+                  "selector": "img",
+                  "child": {
+                    "key": "other_child_child_child_key",
+                    "selector": "",
+                    "extract": {
+                      "type": "attribute",
+                      "key": "src"
+                    }
+                  }
+                },
+                {
+                  "key": "another_child_child_key",
+                  "selector": "figure",
+                  "children": [
+                    {
+                      "key": "another_child_child_child_key",
+                      "selector": "#pic-id"
+                    }
+                  ] 
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }

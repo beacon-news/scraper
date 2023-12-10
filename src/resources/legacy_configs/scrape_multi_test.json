@@ -1,0 +1,78 @@
+{
+  "pages": [
+    {
+      "url": "https://www.bbc.com/news/world",
+      "path_patterns": [
+        "^/news/world-.*-.*"
+      ],
+      "article_selectors": {
+        "container": {
+          "selector": "#main-content"
+        },
+        "components": [
+          {
+            "type": "single",
+            "key": "title",
+            "selector": "#main-heading",
+            "extract": {
+              "type": "text"
+            } 
+          },
+          {
+            "type": "single",
+            "key": "author",
+            "selector": "[data-component=byline-block] [class*=TextContributorName]",
+            "extract": {
+              "type": "text"
+            } 
+          },
+          {
+            "type": "single",
+            "key": "publish_date",
+            "selector": "[data-testid=timestamp]",
+            "extract": {
+              "type": "attribute",
+              "key": "datetime"
+            }
+          },
+          {
+            "type": "multiple",
+            "key": "article",
+            "selector_list": [
+              {
+                "type": "single",
+                "key": "image",
+                "selector": "[data-component=image-block]",
+                "extract": {
+                  "type": "html"
+                }
+              },
+              {
+                "type": "single",
+                "key": "paragraph",
+                "selector": "[data-component=text-block]",
+                "extract": {
+                  "type": "text"
+                }
+              },
+              {
+                "type": "multiple",
+                "key": "article_AGAIN",
+                "selector_list": [
+                  {
+                    "type": "single",
+                    "key": "paragraph",
+                    "selector": "[data-component=text-block]",
+                    "extract": {
+                      "type": "text"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ] 
+      }
+    }
+  ]
+}
