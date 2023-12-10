@@ -66,7 +66,7 @@ def find_articles(config: Config) -> dict:
     scrape_config_to_urls[scrape_config] = urls
 
     for href in urls:
-      log.debug(f"scrape config with url {scrape_config.url} matching ", href)
+      log.debug(f"scrape config with url {url} matching {href}")
   
   return scrape_config_to_urls
 
@@ -147,7 +147,7 @@ def create_argument_parser() -> ArgumentParser:
     type=str,
     required=True,
     dest="config",
-    help="path to config file",
+    help="path to the json or yaml config file",
   )
   parser.add_argument(
     "-o", "--output",
@@ -162,6 +162,11 @@ def create_argument_parser() -> ArgumentParser:
 if __name__ == "__main__":
 
   args = create_argument_parser().parse_args()
+  if args.config.endswith(".json"):
+    config = ConfigFactory().fromJsonString(args.config)
+  elif args.config.endswith(".yaml"):
+    config = ConfigFactory().fromYamlFile(args.config)
+  else:
+    raise Exception("config file must be json or yaml")
   
-  config = ConfigFactory().fromJsonFile(args.config)
   scrape_articles(config, args.output_dir)
