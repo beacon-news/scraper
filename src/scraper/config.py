@@ -1,10 +1,5 @@
-import logging
 import json
 import yaml
-
-logging.basicConfig()
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 # TODO: logging
 # TODO: encourage duck typing (don't check necessarily the types of stuff, check if we're able to use them)
@@ -68,17 +63,22 @@ class Config:
 
 
 class ConfigFactory:
+
+  @staticmethod
   def fromJsonString(config_json_string: str) -> Config:
     return Config(json.loads(config_json_string))
   
-  def fromJsonFile(self, path: str) -> Config:
+  @staticmethod
+  def fromJsonFile(path: str) -> Config:
     with open(path) as f:
       return Config(json.load(f))
   
+  @staticmethod
   def fromYamlString(config_yaml_string: str) -> Config:
     return Config(yaml.safe_load(config_yaml_string))
 
-  def fromYamlFile(self, path: str) -> Config:
+  @staticmethod
+  def fromYamlFile(path: str) -> Config:
     with open(path) as f:
       return Config(yaml.safe_load(f))
 
