@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 from datetime import datetime
 
-from config import Config, ScrapeConfig
+from config import Config, ScrapeConfig, ComponentSelector
 import log_utils
 from selector_processor import SelectorProcessor
 
@@ -22,55 +22,68 @@ class Scraper:
     )
     self.selector_processor = SelectorProcessor(loglevel)
 
-  def scrape_articles(self, config: Config, article_dir: str):
+  def scrape_articles(self, config: Config, output_dir: str, article_limit: int | None = None):
     scrape_config_to_articles: dict[ScrapeConfig, list[str]] = self._find_articles(config)
 
     # for testing 
 
-    scrape_config_to_articles = {
-      config.scrape_configs[0]: ["https://www.bbc.com/news/world-europe-67529571"]
-    }
+    # scrape_config_to_articles = {
+    #   config.scrape_configs[0]: ["https://www.bbc.com/news/world-europe-67529571"]
+    # }
+
+    count = 0
+    self.log.debug(f"article limit is set to {article_limit}")
 
     for scrape_config, urls in scrape_config_to_articles.items():
       self.log.info(f"scraping from {scrape_config.url}")
 
       for article_url in urls:
+
+        if (article_limit is not None) and (count >= article_limit):
+          return
+
+        # TODO: call a cache interface to see if this article has already been scraped
+        # rescrape it if TTL has passed
+
         self.log.info(f"trying to scrape {article_url}")
 
-        if not self._is_url_valid(article_url):
-          self.log.error(f"url {article_url} is not valid")
-          continue
-
-        page = urlopen(article_url)
-        html = page.read().decode("utf-8")
-        soup = BeautifulSoup(html, "html.parser")
-
-        self.log.debug("trying to select article components")
-
-        selectors_result = self.selector_processor.process(scrape_config, soup)
-        if selectors_result is None:
+        scrape_result = self._scrape_article(scrape_config.selectors, article_url)
+        if scrape_result is None:
           self.log.warning(f"no article components found for {article_url}")
           continue
           
-        result = {
+        article_result = {
           "url": article_url,
           "scrape_time": datetime.now().isoformat(),
-          "components": selectors_result
+          "components": scrape_result
         }
 
         # TODO: call an interface which stores the results
         parsed_url = urlparse(article_url)
         article_file = f"article_{parsed_url.netloc}{parsed_url.path.replace('/','_')}.json"
 
-        dir = Path(article_dir)
+        dir = Path(output_dir)
         dir.mkdir(parents=True, exist_ok=True)
 
         article_path = str(dir.joinpath(Path(article_file)))
 
         with open(article_path, "w") as f:
-          json.dump(result, f)
+          json.dump(article_result, f)
 
         self.log.info(f"finished scraping {article_url}, saved to {article_path}")
+        count += 1
+    
+  def _scrape_article(self, selector: ComponentSelector, article_url: str) -> dict | None:
+    if not self._is_url_valid(article_url):
+      self.log.error(f"url {article_url} is not valid")
+      return None
+
+    page = urlopen(article_url)
+    html = page.read().decode("utf-8")
+
+    self.log.debug("trying to select article components")
+    return self.selector_processor.process(selector, html)
+
 
   def _find_articles(self, config: Config) -> dict:
     scrape_config_to_urls = {}

@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from config import ConfigFactory
 from scraper import Scraper
+import logging
 
 def create_argument_parser() -> ArgumentParser:
   parser = ArgumentParser(
@@ -11,14 +12,30 @@ def create_argument_parser() -> ArgumentParser:
     type=str,
     required=True,
     dest="config",
-    help="path to the json or yaml config file",
+    help="Path to the json or yaml config file.",
   )
   parser.add_argument(
     "-o", "--output",
     type=str,
     required=True,
     dest="output_dir",
-    help="output directory to save scraped content to",
+    help="Output directory to save scraped content to.",
+  )
+  parser.add_argument(
+    "-l", "--limit",
+    type=int,
+    default=None,
+    required=False,
+    dest="article_limit",
+    help="Limits the number of articles to scrape. By default all articles will be scraped.",
+  )
+  parser.add_argument(
+    "-d", "--debug",
+    action="store_true",
+    default=False,
+    required=False,
+    dest="debug",
+    help="Enables debug logging.",
   )
   return parser
 
@@ -33,5 +50,14 @@ if __name__ == "__main__":
   else:
     raise Exception("config file must be json or yaml")
   
-  Scraper().scrape_articles(config, args.output_dir)
+  if args.debug:
+    loglevel = logging.DEBUG
+  else:
+    loglevel = logging.INFO
+
+  Scraper(loglevel).scrape_articles(
+    config=config, 
+    output_dir=args.output_dir, 
+    article_limit=args.article_limit
+  )
   

@@ -11,13 +11,13 @@ class SelectorProcessor:
       level=loglevel,
     )
 
-  def process(self, scrape_config: ScrapeConfig, soup: BeautifulSoup) -> dict | None:
-    root = soup.select_one("html")
+  def process(self, selector: ComponentSelector, html: str) -> dict | None:
+    root = BeautifulSoup(html, "html.parser").select_one("html")
     if root is None:
       self.log.error(f"no root 'html' element found")
       return None
 
-    return self._process_selectors(scrape_config.selectors, root)
+    return self._process_selectors(selector, root)
     
   def _process_selectors(self, selector: ComponentSelector, element: Tag) -> dict | None:
     if selector.select == ComponentSelector.prop_select_value_first:
