@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
 from config import ConfigFactory
-from scraper import Scraper
+from scraper import *
 import logging
+from article_cache import *
 
 def create_argument_parser() -> ArgumentParser:
   parser = ArgumentParser(
@@ -20,6 +21,13 @@ def create_argument_parser() -> ArgumentParser:
     required=True,
     dest="output_dir",
     help="Output directory to save scraped content to.",
+  )
+  parser.add_argument(
+    "--cache",
+    type=str,
+    required=False,
+    dest="cache_file",
+    help="Cache file path.",
   )
   parser.add_argument(
     "-l", "--limit",
@@ -55,9 +63,24 @@ if __name__ == "__main__":
   else:
     loglevel = logging.INFO
 
+  if args.cache_file:
+    cache = FileArticleCache(cache_file_path=args.cache_file)
+  else:
+    cache = NoOpArticleCache()
+  
+  if args.article_limit:
+    limit = args.article_limit
+  else:
+    limit = float("inf")
+
+  options = ScrapeOptions(
+    output_dir=args.output_dir,
+    article_limit=limit,
+    article_cache=cache,
+  )
+
   Scraper(loglevel).scrape_articles(
     config=config, 
-    output_dir=args.output_dir, 
-    article_limit=args.article_limit
+    scrape_options=options
   )
   
