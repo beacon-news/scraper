@@ -16,14 +16,14 @@ def create_argument_parser() -> ArgumentParser:
     help="Path to the json or yaml config file.",
   )
   parser.add_argument(
-    "-o", "--output",
+    "-o", "--output-dir",
     type=str,
     required=True,
     dest="output_dir",
     help="Output directory to save scraped content to.",
   )
   parser.add_argument(
-    "--cache",
+    "--cache-file",
     type=str,
     required=False,
     dest="cache_file",
