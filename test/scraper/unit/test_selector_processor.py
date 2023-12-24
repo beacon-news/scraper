@@ -28,7 +28,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # select first element by default
+      # select first element by default (no 'select' provided)
       """
       <html>
         <p>foo</p>
@@ -45,6 +45,26 @@ class TestProcessSelector:
       },
       {
         "first_p": "foo"
+      }
+    ),
+    (
+      # use '*' css selector if no 'selector' is provided
+      """
+      <html>
+        <p>foo</p>
+        <p>bar</p>
+        <p>baz</p>
+      </html>
+      """,
+      {
+        "key": "default_selector",
+        "select": "all",
+        "extract": {
+          "type": "text"
+        }
+      },
+      {
+        "default_selector": ["foo", "bar", "baz"]
       }
     ),
     (
@@ -69,7 +89,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # nested (single child) select first
+      # single child select first
       """
       <html>
         <div>
@@ -103,7 +123,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # nested (single child) select all
+      # single child select all
       """
       <html>
         <div>
@@ -137,7 +157,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # nested (multi child) select first
+      # multi child select first
       """
       <html>
         <div>
@@ -176,7 +196,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # nested (multi child) select all
+      # multi child select all
       """
       <html>
         <div>
@@ -215,7 +235,7 @@ class TestProcessSelector:
       }
     ),
     (
-      # select in order
+      # select in order 
       """
       <html>
         <div>
@@ -225,11 +245,11 @@ class TestProcessSelector:
         <main>
           <span>span_foo</span>
           <span>span_bar</span>
-        </div>
+        </main>
         <div>
           <p>baz</p>
         </div>
-      </main>
+      </html>
       """,
       {
         "key": "ordered_test",
