@@ -1,43 +1,20 @@
 import pytest
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from src.scraper.config import ComponentSelector
-from src.scraper.process_selectors import process_selectors
+from src.scraper.selector_processor import SelectorProcessor
 
 class TestProcessSelector:
 
-  _elem: Tag = None
-
-  @pytest.fixture(scope="class")
-  def test_html_tree(self) -> Tag:
-    html_str = """
-    <html>
-
-      <div>
-        <p>foo</p>
-        <p>bar</p>
-        <main>
-          <span>span_foo</span>
-          <span>span_bar</span>
-        </main>
-      </div>
-      <div>
-        <p>baz</p>
-        <main>
-          <span>span_baz</span>
-        </main>
-      </div>
-
-    </html>
-    """
-    soup = BeautifulSoup(html_str, "html.parser")
-    html = soup.select_one("html")
-    if html is None:
-      raise Exception("no root 'html' element found")
-    return html
-  
-  @pytest.mark.parametrize("selector_config, expected", [
+  @pytest.mark.parametrize("html, selector_config, expected", [
     (
       # select first element
+      """
+      <html>
+        <p>foo</p>
+        <p>bar</p>
+        <p>baz</p>
+      </html>
+      """,
       {
         "key": "first_p",
         "selector": "p",
@@ -51,7 +28,34 @@ class TestProcessSelector:
       }
     ),
     (
+      # select first element by default
+      """
+      <html>
+        <p>foo</p>
+        <p>bar</p>
+        <p>baz</p>
+      </html>
+      """,
+      {
+        "key": "first_p",
+        "selector": "p",
+        "extract": {
+          "type": "text"
+        }
+      },
+      {
+        "first_p": "foo"
+      }
+    ),
+    (
       # select all elements
+      """
+      <html>
+        <p>foo</p>
+        <p>bar</p>
+        <p>baz</p>
+      </html>
+      """,
       {
         "key": "all_ps",
         "selector": "p",
@@ -66,6 +70,19 @@ class TestProcessSelector:
     ),
     (
       # nested (single child) select first
+      """
+      <html>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+          <p>baz</p>
+        </div>
+      </html>
+      """,
       {
         "key": "first_div",
         "selector": "div",
@@ -87,6 +104,19 @@ class TestProcessSelector:
     ),
     (
       # nested (single child) select all
+      """
+      <html>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+          <p>baz</p>
+        </div>
+      </html>
+      """,
       {
         "key": "first_div",
         "selector": "div",
@@ -108,6 +138,19 @@ class TestProcessSelector:
     ),
     (
       # nested (multi child) select first
+      """
+      <html>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+          <p>baz</p>
+        </div>
+      </html>
+      """,
       {
         "key": "all_divs",
         "selector": "div",
@@ -127,13 +170,26 @@ class TestProcessSelector:
             "first_p": "foo"
           },
           {
-            "first_p": "baz"
+            "first_p": "foo"
           }
         ]
       }
     ),
     (
       # nested (multi child) select all
+      """
+      <html>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+          <p>baz</p>
+        </div>
+      </html>
+      """,
       {
         "key": "all_divs",
         "selector": "div",
@@ -153,12 +209,88 @@ class TestProcessSelector:
             "all_ps": ["foo", "bar"]
           },
           {
-            "all_ps": ["baz"]
+            "all_ps": ["foo", "bar", "baz"]
           }
         ]
       }
     ),
     (
+      # select in order
+      """
+      <html>
+        <div>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <main>
+          <span>span_foo</span>
+          <span>span_bar</span>
+        </div>
+        <div>
+          <p>baz</p>
+        </div>
+      </main>
+      """,
+      {
+        "key": "ordered_test",
+        "selector": "div, main",
+        "select": "all",
+        "children": [
+          {
+            "key": "ps",
+            "selector": "p",
+            "select": "all",
+            "extract": {
+              "type": "text"
+            }
+          },
+          {
+            "key": "spans",
+            "selector": "span",
+            "select": "all",
+            "extract": {
+              "type": "text"
+            }
+          }
+        ]
+      },
+      {
+        "ordered_test": [
+          {
+            "ps": ["foo", "bar"]
+          },
+          {
+            "spans": ["span_foo", "span_bar"]
+          },
+          {
+            "ps": ["baz"]
+          },
+        ]
+      }
+    ),
+    (
+      # a more complex selector with nested multi child select alls
+      """
+      <html>
+        <div>
+          <main>
+            <span>span_foo</span>
+            <span>span_bar</span>
+          </main>
+          <p>foo</p>
+          <p>bar</p>
+        </div>
+        <div>
+          <main>
+            <span>span_foo</span>
+            <p>baz</p>
+          </main>
+          <main>
+            <span>span_bar</span>
+          </main>
+        </div>
+      </html>
+      """,
       {
         "key": "divs",
         "selector": "div",
@@ -207,7 +339,10 @@ class TestProcessSelector:
           {
             "mains": [
               {
-                "spans": ["span_baz"]
+                "spans": ["span_foo"]
+              },
+              {
+                "spans": ["span_bar"]
               }
             ]
           }
@@ -215,7 +350,8 @@ class TestProcessSelector:
       }
     )
   ])
-  def test_selector_result(self, selector_config: dict, expected: dict, test_html_tree):
+  # def test_selector_result(self, html: str, selector_config: dict, expected: dict, test_html_tree):
+  def test_selector_result(self, html: str, selector_config: dict, expected: dict):
     s = ComponentSelector(selector_config)
-    result = process_selectors(s, test_html_tree)
+    result = SelectorProcessor().process(s, html)
     assert result == expected
