@@ -97,16 +97,16 @@ class ScrapeConfig:
   """
 
   prop_url = "url"
-  prop_path_patterns = "path_patterns"
+  prop_url_patterns = "url_patterns"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
     self.url: str = scrape_config_dict.get(ScrapeConfig.prop_url)
     ConfigValidator.must_have_type(ScrapeConfig.prop_url, self.url, str)
 
-    self.path_patterns: list[str] = scrape_config_dict.get(ScrapeConfig.prop_path_patterns)
-    ConfigValidator.must_have_type(ScrapeConfig.prop_path_patterns, self.path_patterns, list) # TODO: list of string, actually
-    ConfigValidator.must_not_be_empty(ScrapeConfig.prop_path_patterns, self.path_patterns)
+    self.url_patterns: list[str] = scrape_config_dict.get(ScrapeConfig.prop_url_patterns)
+    ConfigValidator.must_have_type(ScrapeConfig.prop_url_patterns, self.url_patterns, list) # TODO: list of string, actually
+    ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_patterns, self.url_patterns)
 
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
     ConfigValidator.must_have_types(ScrapeConfig.prop_selectors, selectors, [dict, list])

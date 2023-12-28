@@ -79,6 +79,17 @@ if __name__ == "__main__":
     article_cache=cache,
   )
 
+  # import re
+  # for c in config.scrape_configs:
+  #   print(c.url_patterns)
+  #   p = c.url_patterns[0]
+
+  #   print(p)
+  #   m = re.match(p, 'https://abcnews.go.com/Sports/source-texans-cj-stroud-progressing-nico-collins-play/story?id=105897237')
+  #   print(m)
+  
+  # exit(1)
+
   Scraper(loglevel).scrape_articles(
     config=config, 
     scrape_options=options

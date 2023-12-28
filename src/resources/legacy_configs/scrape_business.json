@@ -2,7 +2,7 @@
   "pages": [
     {
       "url": "https://www.bbc.com/news/business",
-      "path_patterns": [
+      "url_patterns": [
         "^/news/business-.*"
       ],
       "article_selectors": {

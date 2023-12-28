@@ -9,7 +9,7 @@ if __name__ == "__main__":
       "pages": [
         {
           "url": "https://www.bbc.com/news/world",
-          "path_patterns": [
+          "url_patterns": [
             "^/news/world-.*-.*"
           ],
           "selectors": {
@@ -28,7 +28,7 @@ if __name__ == "__main__":
       "pages": [
         {
           "url": "https://www.bbc.com/news/world",
-          "path_patterns": [
+          "url_patterns": [
             "^/news/world-.*-.*"
           ],
           "selectors": {
@@ -55,7 +55,7 @@ if __name__ == "__main__":
       "pages": [
         {
           "url": "https://www.bbc.com/news/world",
-          "path_patterns": [
+          "url_patterns": [
             "^/news/world-.*-.*"
           ],
           "selectors": {

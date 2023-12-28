@@ -2,7 +2,7 @@
   "pages": [
     {
       "url": "https://www.bbc.com/news/world",
-      "path_patterns": [
+      "url_patterns": [
         "^/news/world-.*-.*"
       ],
 

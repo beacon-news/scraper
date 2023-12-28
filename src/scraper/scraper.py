@@ -120,48 +120,47 @@ class Scraper:
     urls = set()
     for link in anchor_tags:
       href_attr = link.get("href")
-      article_url_parsed: ParseResult = urlparse(href_attr)
+      absolute_url = self._create_absolute_link(href_attr, scrape_config)
 
-      if not self._url_path_matches_any_pattern(article_url_parsed, scrape_config.path_patterns):
+      if not self._url_matches_any_pattern(absolute_url, scrape_config.url_patterns):
         continue
       
-      absolute_link = self._create_absolute_link(article_url_parsed, scrape_config)
-      self.log.debug(f"scrape config with url {scrape_config.url} matching {absolute_link}")
+      self.log.debug(f"scrape config with url {scrape_config.url} matching {absolute_url}")
 
       # TODO: call a cache interface to see if this url has already been scraped
-      if scrape_options.article_cache.contains(absolute_link):
-        self.log.debug(f"url {absolute_link} already in cache, skipping")
+      if scrape_options.article_cache.contains(absolute_url):
+        self.log.debug(f"url {absolute_url} already in cache, skipping")
         continue
       
-      scrape_options.article_cache.store(absolute_link, scrape_options.ttl)
-      urls.add(absolute_link)
+      scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
+      urls.add(absolute_url)
 
       if len(urls) >= scrape_options.article_limit:
         break
 
     return list(urls)
   
-  def _url_path_matches_any_pattern(self, url_parsed: ParseResult, regex_path_patterns: list[str]):
-    path = url_parsed.path
-    url = url_parsed.geturl()
+  def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
 
-    for p in regex_path_patterns:
-      if re.match(p, path):
-        self.log.debug(f"url {url} matches path pattern {p}")
+    # TODO: optimize by compiling patterns first
+    for p in regex_url_patterns:
+      self.log.debug(f"trying to match {p} to url {url}")
+      if re.match(p, url):
+        self.log.debug(f"url {url} matches url pattern {p}")
         return True
-
-    self.log.debug(f"url {url} not matching any path pattern from {regex_path_patterns}")
+    
+    self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
     return False
     
-  def _create_absolute_link(self, url_parsed: ParseResult, scrape_config: ScrapeConfig) -> str:
-    scheme = url_parsed.scheme
-    url = url_parsed.geturl()
+  def _create_absolute_link(self, absolute_or_relative_url: str, scrape_config: ScrapeConfig) -> str:
+    link_parsed = urlparse(absolute_or_relative_url)
+    scheme = link_parsed.scheme
 
     if scheme != "http" and scheme != "https":
-      self.log.debug(f"url {url} not matching scheme http or https, joining path to root url")
-      url = urljoin(scrape_config.url, url_parsed.path)
+      self.log.debug(f"url {absolute_or_relative_url} not matching scheme http or https, joining path to root url")
+      return urljoin(scrape_config.url, link_parsed.path)
 
-    return url
+    return absolute_or_relative_url
   
   def _is_url_valid(self, url: str) -> bool:
     """checks if url has a scheme and a location"""

@@ -1,0 +1,44 @@
+version: "1.0.0"
+pages:
+- url: https://abcnews.go.com/International
+  url_patterns:
+  - ".*/International/wireStory/.*-[0-9]+"
+  - ".*/International/.*/story?id=.*"
+
+  # href="https://abcnews.go.com/International/wireStory/christmas-eve-worshippers-face-security-screening-cologne-cathedral-105894820"
+  # href="https://abcnews.go.com/International/functional-hospitals-northern-gaza-9-left-south/story?id=105867484"
+
+  selectors:
+    key: article
+    selector: "div.FITT_Article_main__body"
+    children:
+
+    - key: title
+      selector: "h1"
+
+    - key: author
+      selector: "[data-testid=prism-byline] div:first-of-type div div:first-of-type span:nth-of-type(2)"
+
+    - key: publish_date
+      selector: "[data-testid=prism-byline] div:first-of-type div div:nth-of-type(2)"
+
+    - key: article
+      children:
+
+      - key: images
+        selector: "[data-testid=prism-inline-image]"
+        select: all
+        children: 
+
+        - key: image_src
+          selector: "img"
+          extract:
+            type: "attribute"
+            key: "src"
+
+        - key: caption
+          selector: "figcaption div div:first-of-type"
+
+      - key: paragraphs
+        selector: "[data-testid=prism-article-body] p"
+        select: all
