@@ -1,6 +1,6 @@
-from bs4 import BeautifulSoup, ResultSet
+from bs4 import BeautifulSoup
 from urllib.request import urlopen
-from urllib.parse import urlparse, ParseResult
+from urllib.parse import urlparse
 from urllib.parse import urljoin
 import logging
 import re
@@ -59,10 +59,7 @@ class Scraper:
     # }
 
     for scrape_config, urls in scrape_config_to_article_urls.items():
-      self.log.info(f"scraping from {scrape_config.url}")
-
       for article_url in urls:
-
         self.log.info(f"trying to scrape {article_url}")
 
         scrape_result = self._scrape_article(scrape_config.selectors, article_url)
@@ -92,7 +89,7 @@ class Scraper:
     
   def _scrape_article(self, selector: ComponentSelector, article_url: str) -> dict | None:
     if not self._is_url_valid(article_url):
-      self.log.error(f"url {article_url} is not valid")
+      self.log.warning(f"url {article_url} is not valid, not scraping it")
       return None
 
     page = urlopen(article_url)
@@ -106,18 +103,25 @@ class Scraper:
       self, 
       scrape_config: ScrapeConfig, 
       scrape_options: ScrapeOptions,
-  ) -> dict:
+  ) -> list:
     url = scrape_config.url
     self.log.info(f"finding article urls for {url}")
 
+    urls = set()
+
+    if not self._is_url_valid(url):
+      self.log.warning(f"url {url} is invalid, not finding any links for it")
+      return list(urls)
+
+    # TODO: catch errors here
     page = urlopen(url)
+
     html = page.read().decode("utf-8")
     soup = BeautifulSoup(html, "html.parser")
 
     self.log.debug(f"using article limit {scrape_options.article_limit}")
 
     anchor_tags = soup.find_all("a", href=True)
-    urls = set()
     for link in anchor_tags:
       href_attr = link.get("href")
       absolute_url = self._create_absolute_link(href_attr, scrape_config)
@@ -137,7 +141,6 @@ class Scraper:
 
       if len(urls) >= scrape_options.article_limit:
         break
-
     return list(urls)
   
   def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
@@ -146,7 +149,7 @@ class Scraper:
     for p in regex_url_patterns:
       self.log.debug(f"trying to match {p} to url {url}")
       if re.match(p, url):
-        self.log.debug(f"url {url} matches url pattern {p}")
+        self.log.debug(f"pattern {p} matches url {url}")
         return True
     
     self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
@@ -163,6 +166,25 @@ class Scraper:
     return absolute_or_relative_url
   
   def _is_url_valid(self, url: str) -> bool:
-    """checks if url has a scheme and a location"""
+    """checks if url has a scheme and a host"""
     parsed = urlparse(url)
-    return all([parsed.scheme, parsed.netloc])
+    scheme = parsed.scheme.lower()
+    if not scheme:
+      self.log.warning(f"no scheme found for url {url}")
+      return False
+    elif scheme != "http" and scheme != "https":
+      self.log.warning(f"url {url} is not of http or https type")
+      return False
+    
+    netloc = parsed.netloc.lower()
+    netloc_blacklist = ['localhost', '127.0.0.1', '0', '::']
+    if not netloc:
+      self.log.warning(f"no host found for url {url}")
+      return False
+    else:
+      for host in netloc_blacklist:
+        if host in netloc:
+          self.log.warning(f"blacklisted host {host} found in url {url}")
+          return False
+
+    return True

@@ -14,7 +14,7 @@ class SelectorProcessor:
   def process(self, selector: ComponentSelector, html: str) -> dict | None:
     root = BeautifulSoup(html, "html.parser").select_one("html")
     if root is None:
-      self.log.error(f"no root 'html' element found")
+      self.log.error("no root 'html' element found")
       return None
 
     return self._process_selectors(selector, root)
