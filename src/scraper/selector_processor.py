@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup, Tag
 import logging
-from config import ScrapeConfig, PropExtract, ComponentSelector
+from config import PropExtract, ComponentSelector
 import log_utils
 
 class SelectorProcessor:

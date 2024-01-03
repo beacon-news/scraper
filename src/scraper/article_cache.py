@@ -18,7 +18,7 @@ class ArticleCache(ABC):
   
 
   @abstractmethod
-  def store(self, article_url: str, ttl: timedelta = timedelta.max) -> None:
+  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
     """
     Stores the "article_url" with a TTL indicating that 
     the article has been scraped, and the scraped information 
@@ -37,7 +37,7 @@ class NoOpArticleCache(ArticleCache):
   def contains(self, article_url: str) -> bool: 
     return False
 
-  def store(self, article_url: str, ttl: timedelta = timedelta.max) -> None:
+  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
     pass
 
   def remove(self, article_urL: str) -> None:
@@ -91,11 +91,13 @@ class FileArticleCache(ArticleCache):
       for url, exp_date in valid_ttls:
         self.__write_line_to_file(f, url, exp_date)
 
-  def store(self, article_url: str, ttl: timedelta = timedelta.max) -> None:
-    if ttl != timedelta.max:
-      exp_date = datetime.now() + ttl
-    else:
+  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
+    # prevent overflow
+    now = datetime.now()
+    if now > datetime.max - ttl:
       exp_date = datetime.max
+    else:
+      exp_date = datetime.now() + ttl
       
     if article_url in self.__cache:
       # update the cache and trigger a prune (easy fix instead of changing a specific line in the file)
