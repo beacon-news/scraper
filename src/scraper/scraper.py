@@ -158,8 +158,9 @@ class Scraper:
   def _create_absolute_link(self, absolute_or_relative_url: str, scrape_config: ScrapeConfig) -> str:
     link_parsed = urlparse(absolute_or_relative_url)
     scheme = link_parsed.scheme
+    path = link_parsed.path
 
-    if scheme != "http" and scheme != "https":
+    if scheme != "http" and scheme != "https" and path:
       self.log.debug(f"url {absolute_or_relative_url} not matching scheme http or https, joining path to root url")
       return urljoin(scrape_config.url, link_parsed.path)
 
@@ -176,8 +177,19 @@ class Scraper:
       self.log.warning(f"url {url} is not of http or https type")
       return False
     
+    # see https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Server%20Side%20Request%20Forgery/README.md
+    # see https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
     netloc = parsed.netloc.lower()
-    netloc_blacklist = ['localhost', '127.0.0.1', '0', '::']
+    netloc_blacklist = [
+      'localhost', 
+      '127.0.0.1', 
+      '0.0.0.0',
+      '0', 
+      '::',
+      '[::]',
+      '[0000::1]',
+    ]
+
     if not netloc:
       self.log.warning(f"no host found for url {url}")
       return False
