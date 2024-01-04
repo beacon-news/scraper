@@ -104,44 +104,46 @@ class Scraper:
       scrape_config: ScrapeConfig, 
       scrape_options: ScrapeOptions,
   ) -> list:
-    url = scrape_config.url
-    self.log.info(f"finding article urls for {url}")
+    urls = scrape_config.urls
+    scraped_urls = set()
 
-    urls = set()
+    for url in urls:
+      self.log.info(f"finding article urls for {url}")
 
-    if not self._is_url_valid(url):
-      self.log.warning(f"url {url} is invalid, not finding any links for it")
-      return list(urls)
-
-    # TODO: catch errors here
-    page = urlopen(url)
-
-    html = page.read().decode("utf-8")
-    soup = BeautifulSoup(html, "html.parser")
-
-    self.log.debug(f"using article limit {scrape_options.article_limit}")
-
-    anchor_tags = soup.find_all("a", href=True)
-    for link in anchor_tags:
-      href_attr = link.get("href")
-      absolute_url = self._create_absolute_link(href_attr, scrape_config)
-
-      if not self._url_matches_any_pattern(absolute_url, scrape_config.url_patterns):
+      if not self._is_url_valid(url):
+        self.log.warning(f"url {url} is invalid, not finding any links for it")
         continue
-      
-      self.log.debug(f"scrape config with url {scrape_config.url} matching {absolute_url}")
 
-      # TODO: call a cache interface to see if this url has already been scraped
-      if scrape_options.article_cache.contains(absolute_url):
-        self.log.debug(f"url {absolute_url} already in cache, skipping")
-        continue
-      
-      scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
-      urls.add(absolute_url)
+      # TODO: catch errors here
+      page = urlopen(url)
 
-      if len(urls) >= scrape_options.article_limit:
-        break
-    return list(urls)
+      html = page.read().decode("utf-8")
+      soup = BeautifulSoup(html, "html.parser")
+
+      self.log.debug(f"using article limit {scrape_options.article_limit}")
+
+      anchor_tags = soup.find_all("a", href=True)
+      for link in anchor_tags:
+        href_attr = link.get("href")
+        absolute_url = self._create_absolute_link(href_attr, url)
+
+        if not self._url_matches_any_pattern(absolute_url, scrape_config.url_patterns):
+          continue
+        
+        self.log.debug(f"scrape config with url {scrape_config.urls} matching {absolute_url}")
+
+        # TODO: call a cache interface to see if this url has already been scraped
+        if scrape_options.article_cache.contains(absolute_url):
+          self.log.debug(f"url {absolute_url} already in cache, skipping")
+          continue
+        
+        scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
+        scraped_urls.add(absolute_url)
+
+        if len(scraped_urls) >= scrape_options.article_limit:
+          return list(scraped_urls)
+
+    return list(scraped_urls)
   
   def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
 
@@ -155,14 +157,14 @@ class Scraper:
     self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
     return False
     
-  def _create_absolute_link(self, absolute_or_relative_url: str, scrape_config: ScrapeConfig) -> str:
+  def _create_absolute_link(self, absolute_or_relative_url: str, base_url: str) -> str:
     link_parsed = urlparse(absolute_or_relative_url)
     scheme = link_parsed.scheme
     path = link_parsed.path
 
     if scheme != "http" and scheme != "https" and path:
       self.log.debug(f"url {absolute_or_relative_url} not matching scheme http or https, joining path to root url")
-      return urljoin(scrape_config.url, link_parsed.path)
+      return urljoin(base_url, link_parsed.path)
 
     return absolute_or_relative_url
   

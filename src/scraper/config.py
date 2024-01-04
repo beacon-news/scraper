@@ -18,12 +18,15 @@ class ConfigValidator:
       if isinstance(value, t):
         return
     raise ConfigValidationException(f"'{property}' field must be one of types {prop_types}")
+  
+  def iterable_must_have_types(property: str, iterable_value, prop_types: list[type]):
+    for item in iterable_value:
+      ConfigValidator.must_have_types(f"{property}: {item}", item, prop_types)
 
   def must_have_value(property: str, value, values: list):
     for v in values:
       if value == v:
         return
-    
     raise ConfigValidationException(f"'{property}' field must be one of {values}")
   
   def must_not_be_empty(property: str, value: list):
@@ -88,28 +91,29 @@ class ScrapeConfig:
   scrape_config_dict format:
 
   {
-    "url": "https://www.bbc.com/news/world",
-    "patterns_path": [
-      "^/news/world-.*-.*"
-    ],
+    "urls": [str],
+    "url_patterns": [str],
     "selectors": ComponentSelector
   }
   """
 
-  prop_url = "url"
+  prop_urls = "urls"
   prop_url_patterns = "url_patterns"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
-    self.url: str = scrape_config_dict.get(ScrapeConfig.prop_url)
-    ConfigValidator.must_have_type(ScrapeConfig.prop_url, self.url, str)
+    self.urls: str = scrape_config_dict.get(ScrapeConfig.prop_urls)
+    ConfigValidator.must_have_type(ScrapeConfig.prop_urls, self.urls, list)
+    ConfigValidator.must_not_be_empty(ScrapeConfig.prop_urls, self.urls)
+    ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_urls, self.urls, [str])
 
     self.url_patterns: list[str] = scrape_config_dict.get(ScrapeConfig.prop_url_patterns)
-    ConfigValidator.must_have_type(ScrapeConfig.prop_url_patterns, self.url_patterns, list) # TODO: list of string, actually
+    ConfigValidator.must_have_type(ScrapeConfig.prop_url_patterns, self.url_patterns, list) 
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_patterns, self.url_patterns)
+    ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_url_patterns, self.url_patterns, [str])
 
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
-    ConfigValidator.must_have_types(ScrapeConfig.prop_selectors, selectors, [dict, list])
+    ConfigValidator.must_have_types(ScrapeConfig.prop_selectors, selectors, [dict])
     self.selectors = ComponentSelector(selectors)
 
 class ComponentSelector:
