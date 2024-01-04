@@ -289,6 +289,76 @@ class TestProcessSelector:
       }
     ),
     (
+      # include_self test
+      """
+      <html>
+        <div> 
+          <p>foo</p>
+        </div>
+      </html>
+      """,
+      {
+        "key": "include_self_test",
+        "selector": "div p",
+        "child": {
+          "key": "p",
+          "selector": "p", # also works with 'div p', but 'div' doesn't return anything for some reason...
+          "include_self": "true",
+        }
+      },
+      {
+        "include_self_test": {
+          "p": "foo"
+        }
+      }
+    ),
+    (
+      # select elements in order (filter) with include_self
+      """
+      <html>
+        <div> 
+          <p>foo</p>
+          <span>span_foo</span>
+          <p>bar</p>
+          <span>span_bar</span>
+        </div>
+      </html>
+      """,
+      {
+        "key": "order_include_self",
+        "selector": "div p, div span", # selects p, span in order
+        "select": "all",
+        "children": [ 
+          {
+            "key": "p",
+            "selector": "p",
+            "include_self": "true", # filter them by applying redundant selectors with the parent
+          },
+          {
+            "key": "span",
+            "selector": "span",
+            "include_self": "true",
+          }
+        ]
+      },
+      {
+        "order_include_self": [
+          {
+            "p": "foo"
+          },
+          {
+            "span": "span_foo"
+          },
+          {
+            "p": "bar"
+          },
+          {
+            "span": "span_bar"
+          },
+        ]
+      }
+    ),
+    (
       # a more complex selector with nested multi child select alls
       """
       <html>
@@ -370,7 +440,6 @@ class TestProcessSelector:
       }
     )
   ])
-  # def test_selector_result(self, html: str, selector_config: dict, expected: dict, test_html_tree):
   def test_selector_result(self, html: str, selector_config: dict, expected: dict):
     s = ComponentSelector(selector_config)
     result = SelectorProcessor().process(s, html)
