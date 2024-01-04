@@ -50,6 +50,8 @@ class FileArticleCache(ArticleCache):
     self.__cache = {} 
     self.__create_cache_file()
     self.__load_cache()
+    # prune old entries
+    self.__recreate_cache()
   
   def __create_cache_file(self):
     file = Path(self.__cache_file_path)
@@ -87,9 +89,10 @@ class FileArticleCache(ArticleCache):
   def __recreate_valid_file(self):
     # recreates the file with only the valid entries
     valid_ttls = [(url, exp_date) for url, exp_date in self.__cache.items() if exp_date > datetime.now()]
-    with open(self.__cache_file_path, "w") as f:
-      for url, exp_date in valid_ttls:
-        self.__write_line_to_file(f, url, exp_date)
+    if len(valid_ttls) < len(self.__cache):
+      with open(self.__cache_file_path, "w") as f:
+        for url, exp_date in valid_ttls:
+          self.__write_line_to_file(f, url, exp_date)
 
   def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
     # prevent overflow

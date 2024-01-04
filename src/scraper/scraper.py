@@ -20,7 +20,7 @@ class ScrapeOptions:
       self, 
       output_dir: str, 
       article_limit: int | float = float("inf"),
-      ttl: timedelta = timedelta.max,
+      ttl: timedelta = timedelta(weeks=1),
       article_cache: ArticleCache = NoOpArticleCache(),
   ):
     self.output_dir = output_dir

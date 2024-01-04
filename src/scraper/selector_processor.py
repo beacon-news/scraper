@@ -29,15 +29,15 @@ class SelectorProcessor:
   def _process_selectors_one(self, selector: ComponentSelector, element: Tag) -> dict | None:
     result = {}
 
-    # only select the first one
-    elem = element.select_one(selector.css_selector)
+    select_root = self._get_selector_root(selector, element)
+    elem = select_root.select_one(selector.css_selector)
     if elem is None:
       self.log.debug(f"no element found for component {selector.key}, selector: {selector.css_selector}")
       return None
     
     if selector.type == ComponentSelector.selector_type_leaf:
       # try to extract some info
-      info = self._extract_info_from_tag(elem, selector.extract)
+      info = self._extract_info_from_tag(selector.extract, elem)
       if info is None:
         self.log.debug(f"no info found for component: {selector.key}, selector: {selector.css_selector}, extract type: {selector.extract.type}")
         return None
@@ -69,7 +69,8 @@ class SelectorProcessor:
     result = {}
     result_list = []
 
-    elems = element.select(selector.css_selector)
+    select_root = self._get_selector_root(selector, element)
+    elems = select_root.select(selector.css_selector)
     if len(elems) == 0:
       self.log.debug(f"no elements found for component {selector.key}, selector: {selector.css_selector}")
       return None
@@ -77,7 +78,7 @@ class SelectorProcessor:
     if selector.type == ComponentSelector.selector_type_leaf:
       for elem in elems:
         # try to extract some info
-        info = self._extract_info_from_tag(elem, selector.extract)
+        info = self._extract_info_from_tag(selector.extract, elem)
         if info is None:
           self.log.debug(f"no info found for component: {selector.key}, selector: {selector.css_selector}, extract type: {selector.extract.type}")
         else:
@@ -102,8 +103,18 @@ class SelectorProcessor:
     result[selector.key] = result_list
     return result
 
+  def _get_selector_root(self, selector: ComponentSelector, element: Tag) -> Tag:
+    # include this element in the selector by creating a container parent div which
+    # the selector will be applied to
+    if selector.include_self:
+      self.log.debug("including self, creating container div")
+      container_div = BeautifulSoup("", "html.parser").new_tag("div")
+      container_div.append(element)
+      return container_div
+    else:
+      return element
 
-  def _extract_info_from_tag(self, tag: Tag, propExtract: PropExtract) -> str | None:
+  def _extract_info_from_tag(self, propExtract: PropExtract, tag: Tag) -> str | None:
     info = None
     if propExtract.type == PropExtract.prop_type_value_text:
       info = tag.text

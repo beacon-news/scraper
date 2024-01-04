@@ -119,24 +119,32 @@ class ComponentSelector:
     "key": str,
     "selector": str,
     "select": "first" | "all",
+    <optional> "include_self": "true",
     "child": ComponentSelector
   }
   'multi'
   {
     "key": str,
     "selector": str,
+    "select": "first" | "all",
+    <optional> "include_self": "true",
     "children": ComponentSelector[] 
   }
   'leaf'
   {
     "key": str,
     "selector": str,
+    "select": "first" | "all",
+    <optional> "include_self": "true",
     "extract": PropExtract
   }
   """
 
   prop_key = "key"
   prop_css_selector = "selector"
+
+  prop_include_self = "include_self"
+  prop_include_self_value_true = "true"
   
   prop_select = "select"
   prop_select_value_first = "first"
@@ -173,6 +181,18 @@ class ComponentSelector:
     else:
       select = ComponentSelector.prop_select_value_first
     self.select = select
+
+    # include_self can be empty -> false by default
+    # controls if the selector also includes the element itself instead of only its children
+    include_self = config.get(ComponentSelector.prop_include_self)
+    if include_self is not None:
+      ConfigValidator.must_have_types(ComponentSelector.prop_include_self, include_self, [str, bool])
+      ConfigValidator.must_have_value(
+        ComponentSelector.prop_include_self, 
+        include_self, 
+        [ComponentSelector.prop_include_self_value_true, True]
+      )
+    self.include_self = True if include_self == True or include_self == "true" else False
 
     # try to get "child" --> not a leaf node
     child = config.get(ComponentSelector.prop_single_child)
