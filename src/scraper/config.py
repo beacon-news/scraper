@@ -92,13 +92,13 @@ class ScrapeConfig:
 
   {
     "urls": [str],
-    "url_patterns": [str],
+    "url_selectors": ComponentSelector,
     "selectors": ComponentSelector
   }
   """
 
   prop_urls = "urls"
-  prop_url_patterns = "url_patterns"
+  prop_url_selectors = "url_selectors"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
@@ -107,13 +107,17 @@ class ScrapeConfig:
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_urls, self.urls)
     ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_urls, self.urls, [str])
 
-    self.url_patterns: list[str] = scrape_config_dict.get(ScrapeConfig.prop_url_patterns)
-    ConfigValidator.must_have_type(ScrapeConfig.prop_url_patterns, self.url_patterns, list) 
-    ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_patterns, self.url_patterns)
-    ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_url_patterns, self.url_patterns, [str])
+    url_selectors = scrape_config_dict.get(ScrapeConfig.prop_url_selectors)
+    # self.url_selectors: list[str] = scrape_config_dict.get(ScrapeConfig.prop_url_selectors)
+    ConfigValidator.must_not_be_none(ScrapeConfig.prop_url_selectors, url_selectors)
+    ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_selectors, url_selectors)
+    ConfigValidator.must_have_type(ScrapeConfig.prop_url_selectors, url_selectors, dict) 
+    # ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_selectors, self.url_selectors)
+    # ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_url_selectors, url_selectors, [str])
+    self.url_selectors = ComponentSelector(url_selectors)
 
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
-    ConfigValidator.must_have_types(ScrapeConfig.prop_selectors, selectors, [dict])
+    ConfigValidator.must_have_type(ScrapeConfig.prop_selectors, selectors, dict)
     self.selectors = ComponentSelector(selectors)
 
 class ComponentSelector:
@@ -196,7 +200,7 @@ class ComponentSelector:
         include_self, 
         [ComponentSelector.prop_include_self_value_true, True]
       )
-    self.include_self = True if include_self == True or include_self == "true" else False
+    self.include_self = True if include_self == True or include_self == ComponentSelector.prop_include_self_value_true else False
 
     # try to get "child" --> not a leaf node
     child = config.get(ComponentSelector.prop_single_child)
@@ -237,6 +241,7 @@ class PropExtract:
     "type": "text" | "html" | "attribute",
     | attribute:
       "key": str
+    <optional> "regex": PropExtractRegex
   }
   """
 
@@ -247,6 +252,7 @@ class PropExtract:
   prop_type_values = [prop_type_value_text, prop_type_value_attribute, prop_type_value_html]
 
   prop_attribute_key = "key"
+  prop_regex_extractor = "regex_extractor"
 
   def __init__(self, config: dict = {}):
     self.type = config.get(PropExtract.prop_type)
@@ -259,3 +265,35 @@ class PropExtract:
     if self.type == PropExtract.prop_type_value_attribute:
       self.attribute_key: str = config.get(PropExtract.prop_attribute_key)
       ConfigValidator.must_have_type(PropExtract.prop_attribute_key, self.attribute_key, str)
+    
+    regex_extractor = config.get(PropExtract.prop_regex_extractor)
+    if regex_extractor is not None:
+      self.regex_extractor = PropExtractRegex(regex_extractor)
+    else:
+      self.regex_extractor = None
+  
+class PropExtractRegex:
+  """
+  {
+    "regex": [str],
+    "action": "match" | "find"
+  }
+  """
+  prop_regex = "regex"
+  prop_action = "action"
+  prop_action_search = "search"
+  prop_action_findall = "findall"
+  prop_type_values = [prop_action_search, prop_action_findall]
+
+  def __init__(self, config: dict):
+    self.regex = config.get(PropExtractRegex.prop_regex)
+    ConfigValidator.iterable_must_have_types(PropExtractRegex.prop_regex, self.regex, [str])
+    ConfigValidator.must_not_be_empty(PropExtractRegex.prop_regex, self.regex)
+
+    self.action = config.get(PropExtractRegex.prop_action)
+    if self.action is not None:
+      ConfigValidator.must_have_type(PropExtractRegex.prop_action, self.action, str)
+      ConfigValidator.must_have_value(PropExtractRegex.prop_action, self.action, PropExtractRegex.prop_type_values)
+    else:
+      self.action = PropExtractRegex.prop_action_search
+

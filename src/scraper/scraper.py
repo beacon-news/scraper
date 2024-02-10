@@ -118,25 +118,20 @@ class Scraper:
       page = urlopen(url)
 
       html = page.read().decode("utf-8")
-      soup = BeautifulSoup(html, "html.parser")
+
+      # select all urls using the specified selectors
+      url_dict = self.selector_processor.process(scrape_config.url_selectors, html)
+      url_list = self._flatten_dict_to_list(url_dict)
 
       self.log.debug(f"using article limit {scrape_options.article_limit}")
+      
+      for scraped_url in url_list:
+        absolute_url = self._create_absolute_link(scraped_url, url)
 
-      anchor_tags = soup.find_all("a", href=True)
-      for link in anchor_tags:
-        href_attr = link.get("href")
-        absolute_url = self._create_absolute_link(href_attr, url)
-
-        if not self._url_matches_any_pattern(absolute_url, scrape_config.url_patterns):
-          continue
-        
-        self.log.debug(f"scrape config with url {scrape_config.urls} matching {absolute_url}")
-
-        # TODO: call a cache interface to see if this url has already been scraped
         if scrape_options.article_cache.contains(absolute_url):
-          self.log.debug(f"url {absolute_url} already in cache, skipping")
+          self.log.info(f"url {absolute_url} already in cache, skipping")
           continue
-        
+
         scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
         scraped_urls.add(absolute_url)
 
@@ -144,18 +139,56 @@ class Scraper:
           return list(scraped_urls)
 
     return list(scraped_urls)
-  
-  def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
 
-    # TODO: optimize by compiling patterns first
-    for p in regex_url_patterns:
-      self.log.debug(f"trying to match {p} to url {url}")
-      if re.match(p, url):
-        self.log.debug(f"pattern {p} matches url {url}")
-        return True
+    #   soup = BeautifulSoup(html, "html.parser")
+
+      # self.log.debug(f"using article limit {scrape_options.article_limit}")
+
+    #   anchor_tags = soup.find_all("a", href=True)
+    #   for link in anchor_tags:
+    #     href_attr = link.get("href")
+    #     absolute_url = self._create_absolute_link(href_attr, url)
+
+    #     if not self._url_matches_any_pattern(absolute_url, scrape_config.url_selectors):
+    #       continue
+        
+    #     self.log.debug(f"scrape config with url {scrape_config.urls} matching {absolute_url}")
+
+    #     if scrape_options.article_cache.contains(absolute_url):
+    #       self.log.info(f"url {absolute_url} already in cache, skipping")
+    #       continue
+        
+    #     scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
+    #     scraped_urls.add(absolute_url)
+
+    #     if len(scraped_urls) >= scrape_options.article_limit:
+    #       return list(scraped_urls)
+
+    # return list(scraped_urls)
+  
+  def _flatten_dict_to_list(self, d: dict) -> dict:
+    result = []
+    for k, v in d.items():
+      if isinstance(v, dict):
+        result = [*result, *self._flatten_dict_to_list(v)]
+      elif isinstance(v, list):
+        result = [*result, *v]
+      else:
+        result.append(v)
+
+    return result
+  
+  # def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
+
+  #   # TODO: optimize by compiling patterns first
+  #   for p in regex_url_patterns:
+  #     self.log.debug(f"trying to match {p} to url {url}")
+  #     if re.match(p, url):
+  #       self.log.debug(f"pattern {p} matches url {url}")
+  #       return True
     
-    self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
-    return False
+  #   self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
+  #   return False
     
   def _create_absolute_link(self, absolute_or_relative_url: str, base_url: str) -> str:
     link_parsed = urlparse(absolute_or_relative_url)

@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup, Tag
 import logging
-from config import PropExtract, ComponentSelector
+from config import ComponentSelector, PropExtract, PropExtractRegex
 import log_utils
+import re
 
 class SelectorProcessor:
 
@@ -114,19 +115,35 @@ class SelectorProcessor:
     else:
       return element
 
-  def _extract_info_from_tag(self, propExtract: PropExtract, tag: Tag) -> str | None:
+  def _extract_info_from_tag(self, prop_extract: PropExtract, tag: Tag) -> str | list[str] | None:
     info = None
-    if propExtract.type == PropExtract.prop_type_value_text:
+    if prop_extract.type == PropExtract.prop_type_value_text:
       info = tag.text
-    elif propExtract.type == PropExtract.prop_type_value_html:
+    elif prop_extract.type == PropExtract.prop_type_value_html:
       info = str(tag)
-    elif propExtract.type == PropExtract.prop_type_value_attribute:
-      info = tag.get(propExtract.attribute_key)
+    elif prop_extract.type == PropExtract.prop_type_value_attribute:
+      info = tag.get(prop_extract.attribute_key)
+      print(info)
     
-    if len(info) == 0:
+    if info == None or len(info) == 0:
       return None
-  
+    
     info = info.strip()
+    
+    if prop_extract.regex_extractor == None:
+      return info 
+    
+    # extract or match based on regex from info
+    extractor = prop_extract.regex_extractor
+    if extractor.action == PropExtractRegex.prop_action_search: 
+      for pattern in extractor.regex:
+        if re.search(pattern, info):
+          return info
       
-    return info
+    elif extractor.action == PropExtractRegex.prop_action_findall:
+      all_matches = []
+      for pattern in extractor.regex:
+        all_matches.append(re.findall(pattern, info))
+      return [i.strip() for i in all_matches]
+
     
