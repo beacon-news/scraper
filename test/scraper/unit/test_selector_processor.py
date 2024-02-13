@@ -447,12 +447,11 @@ class TestProcessSelector:
       </html>
       """,
       {
-        "key": "match",
+        "key": "original_match",
         "select": "all",
         "extract": {
           "type": "text",
           "regex_extractor": {
-            "action": "search",
             "regex": [
               ".*foo.*"
             ]
@@ -460,13 +459,13 @@ class TestProcessSelector:
         },
       },
       {
-        "match": [
+        "original_match": [
           "blah foo blah"
         ]
       }
     ),
     (
-      # test regex prop extractor for finding only matching spans
+      # test regex prop extractor for returning only the first matching span
       """
       <html>
         <p>blah1 foo blah2</p>
@@ -474,12 +473,12 @@ class TestProcessSelector:
       </html>
       """,
       {
-        "key": "findall",
+        "key": "first_match",
         "select": "all",
         "extract": {
           "type": "text",
           "regex_extractor": {
-            "action": "findall",
+            "return": "first",
             "regex": [
               "blah."
             ]
@@ -487,8 +486,8 @@ class TestProcessSelector:
         },
       },
       {
-        "findall": [
-          "blah1", "blah2" # all matches will be contained in a single list
+        "first_match": [
+          "blah1", 
         ]
       }
     ),

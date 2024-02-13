@@ -82,9 +82,6 @@ class SelectorProcessor:
         info = self._extract_info_from_tag(selector.extract, elem)
         if info is None:
           self.log.debug(f"no info found for component: {selector.key}, selector: {selector.css_selector}, extract type: {selector.extract.type}")
-        elif isinstance(info, list):
-          # if we found multiple values, extend the list, don't add a nested list
-          result_list += info
         else:
           result_list.append(info)
 
@@ -137,24 +134,19 @@ class SelectorProcessor:
     
     # extract or match based on regex from info
     extractor = prop_extract.regex_extractor
-    if extractor.action == PropExtractRegex.prop_action_search: 
+
+    # return the original string if any regex matches
+    if extractor.return_type == PropExtractRegex.prop_return_original: 
       for pattern in extractor.regex:
         if re.search(pattern, info):
           return info
       
-    elif extractor.action == PropExtractRegex.prop_action_findall:
-      all_matches = []
+    # return only the first match if any regex matches
+    elif extractor.return_type == PropExtractRegex.prop_return_first:
       for pattern in extractor.regex:
-        all_matches += re.findall(pattern, info)
-      
-      if len(all_matches) == 0:
-        return None
-
-      all_matches = [i.strip() for i in all_matches]
-
-      # filter out duplicates
-      all_matches = set(all_matches)
-      return list(all_matches)
+        match = re.search(pattern, info)
+        if match:
+          return match.group(0)
     
     # in any other case, return None
     return None

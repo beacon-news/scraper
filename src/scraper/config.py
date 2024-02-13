@@ -279,14 +279,14 @@ class PropExtractRegex:
   """
   {
     "regex": [str],
-    "action": "match" | "find"
+    "return": "original" | "first",
   }
   """
   prop_regex = "regex"
-  prop_action = "action"
-  prop_action_search = "search"
-  prop_action_findall = "findall"
-  prop_type_values = [prop_action_search, prop_action_findall]
+  prop_return = "return"
+  prop_return_original = "original"
+  prop_return_first = "first"
+  prop_return_values = [prop_return_original, prop_return_first]
 
   def __init__(self, config: dict):
     self.regex = config.get(PropExtractRegex.prop_regex)
@@ -294,10 +294,11 @@ class PropExtractRegex:
     ConfigValidator.must_not_be_empty(PropExtractRegex.prop_regex, self.regex)
     ConfigValidator.iterable_must_have_types(PropExtractRegex.prop_regex, self.regex, [str])
 
-    self.action = config.get(PropExtractRegex.prop_action)
-    if self.action is not None:
-      ConfigValidator.must_have_type(PropExtractRegex.prop_action, self.action, str)
-      ConfigValidator.must_have_value(PropExtractRegex.prop_action, self.action, PropExtractRegex.prop_type_values)
+    self.return_type = config.get(PropExtractRegex.prop_return)
+    if self.return_type is not None:
+      ConfigValidator.must_have_type(PropExtractRegex.prop_return, self.return_type, str)
+      ConfigValidator.must_have_value(PropExtractRegex.prop_return, self.return_type, PropExtractRegex.prop_return_values)
     else:
-      self.action = PropExtractRegex.prop_action_search
+      # by default return the original string
+      self.return_type = PropExtractRegex.prop_return_original
 
