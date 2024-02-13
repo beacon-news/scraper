@@ -82,6 +82,9 @@ class SelectorProcessor:
         info = self._extract_info_from_tag(selector.extract, elem)
         if info is None:
           self.log.debug(f"no info found for component: {selector.key}, selector: {selector.css_selector}, extract type: {selector.extract.type}")
+        elif isinstance(info, list):
+          # if we found multiple values, extend the list, don't add a nested list
+          result_list += info
         else:
           result_list.append(info)
 
@@ -123,7 +126,6 @@ class SelectorProcessor:
       info = str(tag)
     elif prop_extract.type == PropExtract.prop_type_value_attribute:
       info = tag.get(prop_extract.attribute_key)
-      print(info)
     
     if info == None or len(info) == 0:
       return None
@@ -143,7 +145,18 @@ class SelectorProcessor:
     elif extractor.action == PropExtractRegex.prop_action_findall:
       all_matches = []
       for pattern in extractor.regex:
-        all_matches.append(re.findall(pattern, info))
-      return [i.strip() for i in all_matches]
+        all_matches += re.findall(pattern, info)
+      
+      if len(all_matches) == 0:
+        return None
+
+      all_matches = [i.strip() for i in all_matches]
+
+      # filter out duplicates
+      all_matches = set(all_matches)
+      return list(all_matches)
+    
+    # in any other case, return None
+    return None
 
     

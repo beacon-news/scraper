@@ -1,9 +1,7 @@
-from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 import logging
-import re
 from pathlib import Path
 import json
 from datetime import datetime
@@ -67,7 +65,15 @@ class Scraper:
           self.log.warning(f"no article components found for {article_url}")
           continue
           
-        article_result = {
+        # add metadata as the first key, if it existed
+        article_result = {}
+        if scrape_config.metadata is not None:
+          article_result |= {
+            "metadata": scrape_config.metadata
+          }
+        
+        # add other keys and the result
+        article_result |= {
           "url": article_url,
           "scrape_time": datetime.now().isoformat(),
           "components": scrape_result
@@ -166,7 +172,10 @@ class Scraper:
 
     # return list(scraped_urls)
   
-  def _flatten_dict_to_list(self, d: dict) -> dict:
+  def _flatten_dict_to_list(self, d: dict | None) -> dict:
+    if d is None:
+      return []
+
     result = []
     for k, v in d.items():
       if isinstance(v, dict):

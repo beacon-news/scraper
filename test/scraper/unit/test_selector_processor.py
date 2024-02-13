@@ -1,5 +1,4 @@
 import pytest
-from bs4 import BeautifulSoup
 from src.scraper.config import ComponentSelector
 from src.scraper.selector_processor import SelectorProcessor
 
@@ -438,9 +437,64 @@ class TestProcessSelector:
           }
         ],
       }
-    )
+    ),
+    (
+      # test regex prop extractor for matching
+      """
+      <html>
+        <p>blah foo blah</p>
+        <p>This string doesn't contain only bar</p>
+      </html>
+      """,
+      {
+        "key": "match",
+        "select": "all",
+        "extract": {
+          "type": "text",
+          "regex_extractor": {
+            "action": "search",
+            "regex": [
+              ".*foo.*"
+            ]
+          }
+        },
+      },
+      {
+        "match": [
+          "blah foo blah"
+        ]
+      }
+    ),
+    (
+      # test regex prop extractor for finding only matching spans
+      """
+      <html>
+        <p>blah1 foo blah2</p>
+        <p>This string doesn't contain only bar</p>
+      </html>
+      """,
+      {
+        "key": "findall",
+        "select": "all",
+        "extract": {
+          "type": "text",
+          "regex_extractor": {
+            "action": "findall",
+            "regex": [
+              "blah."
+            ]
+          }
+        },
+      },
+      {
+        "findall": [
+          "blah1", "blah2" # all matches will be contained in a single list
+        ]
+      }
+    ),
   ])
   def test_selector_result(self, html: str, selector_config: dict, expected: dict):
     s = ComponentSelector(selector_config)
     result = SelectorProcessor().process(s, html)
     assert result == expected
+

@@ -9,17 +9,17 @@ class ConfigValidator:
     if value is None:
       raise ConfigValidationException(f"'{property}' field must not be None")
   
-  def must_have_type(property: str, value, prop_type: type):
+  def must_have_type(property: str, value, prop_type: object):
     if not isinstance(value, prop_type):
       raise ConfigValidationException(f"'{property}' field must be of type {prop_type}")
 
-  def must_have_types(property: str, value, prop_types: list[type]):
+  def must_have_types(property: str, value, prop_types: list):
     for t in prop_types:
       if isinstance(value, t):
         return
     raise ConfigValidationException(f"'{property}' field must be one of types {prop_types}")
   
-  def iterable_must_have_types(property: str, iterable_value, prop_types: list[type]):
+  def iterable_must_have_types(property: str, iterable_value, prop_types: list):
     for item in iterable_value:
       ConfigValidator.must_have_types(f"{property}: {item}", item, prop_types)
 
@@ -91,29 +91,32 @@ class ScrapeConfig:
   scrape_config_dict format:
 
   {
+    <optional> "metadata": dict,
     "urls": [str],
     "url_selectors": ComponentSelector,
-    "selectors": ComponentSelector
+    "selectors": ComponentSelector,
   }
   """
 
+  prop_metadata = "metadata"
   prop_urls = "urls"
   prop_url_selectors = "url_selectors"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
+    self.metadata = scrape_config_dict.get(ScrapeConfig.prop_metadata)
+    if self.metadata is not None:
+      ConfigValidator.must_have_type(ScrapeConfig.prop_metadata, self.metadata, dict)
+
     self.urls: str = scrape_config_dict.get(ScrapeConfig.prop_urls)
     ConfigValidator.must_have_type(ScrapeConfig.prop_urls, self.urls, list)
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_urls, self.urls)
     ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_urls, self.urls, [str])
 
     url_selectors = scrape_config_dict.get(ScrapeConfig.prop_url_selectors)
-    # self.url_selectors: list[str] = scrape_config_dict.get(ScrapeConfig.prop_url_selectors)
     ConfigValidator.must_not_be_none(ScrapeConfig.prop_url_selectors, url_selectors)
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_selectors, url_selectors)
     ConfigValidator.must_have_type(ScrapeConfig.prop_url_selectors, url_selectors, dict) 
-    # ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_selectors, self.url_selectors)
-    # ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_url_selectors, url_selectors, [str])
     self.url_selectors = ComponentSelector(url_selectors)
 
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
@@ -287,8 +290,9 @@ class PropExtractRegex:
 
   def __init__(self, config: dict):
     self.regex = config.get(PropExtractRegex.prop_regex)
-    ConfigValidator.iterable_must_have_types(PropExtractRegex.prop_regex, self.regex, [str])
+    ConfigValidator.must_have_type(PropExtractRegex.prop_regex, self.regex, list)
     ConfigValidator.must_not_be_empty(PropExtractRegex.prop_regex, self.regex)
+    ConfigValidator.iterable_must_have_types(PropExtractRegex.prop_regex, self.regex, [str])
 
     self.action = config.get(PropExtractRegex.prop_action)
     if self.action is not None:
