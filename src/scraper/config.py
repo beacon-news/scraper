@@ -245,6 +245,7 @@ class PropExtract:
     | attribute:
       "key": str
     <optional> "regex": PropExtractRegex
+    <optional> "modifiers": [Modifier]
   }
   """
 
@@ -256,6 +257,7 @@ class PropExtract:
 
   prop_attribute_key = "key"
   prop_regex_extractor = "regex_extractor"
+  prop_modifiers = "modifiers"
 
   def __init__(self, config: dict = {}):
     self.type = config.get(PropExtract.prop_type)
@@ -274,6 +276,12 @@ class PropExtract:
       self.regex_extractor = PropExtractRegex(regex_extractor)
     else:
       self.regex_extractor = None
+
+    modifiers = config.get(PropExtract.prop_modifiers)
+    if modifiers is not None:
+      self.modifiers = [ Modifier(m) for m in modifiers ]
+    else:
+      self.modifiers = None
   
 class PropExtractRegex:
   """
@@ -302,3 +310,18 @@ class PropExtractRegex:
       # by default return the original string
       self.return_type = PropExtractRegex.prop_return_original
 
+
+class Modifier:
+  """
+  {
+    "type": "date_modifier",
+  }
+  """
+  prop_type = "type"
+  prop_type_iso_date_modifier = "iso_date_modifier"
+  prop_type_values = [prop_type_iso_date_modifier]
+
+  def __init__(self, config: dict):
+    self.type = config.get(Modifier.prop_type)
+    ConfigValidator.must_have_type(Modifier.prop_type, self.type, str)
+    ConfigValidator.must_have_value(Modifier.prop_type, self.type, Modifier.prop_type_values)
