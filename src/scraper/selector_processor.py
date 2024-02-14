@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup, Tag
 import logging
-from config import ComponentSelector, PropExtract, PropExtractRegex, Modifier
+from config import *
 import log_utils
 import re
 from dateutil.parser import parse
@@ -130,29 +130,9 @@ class SelectorProcessor:
     
     info = info.strip()
     
-    info = self._extract_regex(prop_extract.regex_extractor, info)
-
-
-  def _extract_regex(self, prop_extract_regex: PropExtractRegex, info: str) -> str | None:
-    if prop_extract_regex == None:
-      return info 
-    
-    # extract or match based on regex from info
-    for pattern in prop_extract_regex.regex:
-      match = re.search(pattern, info)
-      if match:
-        # return the original string if any regex matches
-        if prop_extract_regex.return_type == PropExtractRegex.prop_return_original:
-          return info
-
-        # return only the first match if any regex matches
-        elif prop_extract_regex.return_type == PropExtractRegex.prop_return_first:
-          return match.group(0)
-        
-      # TODO: throw error, although it shouldn't happen with proper config validation
-    
-    # in any other case, return None
-    return None
+    # info = self._extract_regex(prop_extract.regex_extractor, info)
+    info = self._process_modifiers(prop_extract.modifiers, info)
+    return info
 
   def _process_modifiers(self, modifiers: list[Modifier], info: str) -> str | None:
     if modifiers == None:
@@ -160,30 +140,54 @@ class SelectorProcessor:
 
     # TODO: abstract away the modifiers, don't use if cases
     for m in modifiers:
-      if m.type == Modifier.prop_type_iso_date_modifier:
-        tz_seconds = {
-          "UTC": 0,
-          "EST": -5 * 3600,
-          "EDT": -4 * 3600,
-          "CST": -6 * 3600,
-          "CDT": -5 * 3600,
-          "MST": -7 * 3600,
-          "MDT": -6 * 3600,
-          "PST": -8 * 3600,
-          "PDT": -7 * 3600,
-          "GMT": 0,
-          "BST": 1 * 3600,
-          "IST": int(5.5 * 3600),
-          "CET": 1 * 3600,
-          "CEST": 2 * 3600,
-          "AEST": 10 * 3600,
-          "AEDT": 11 * 3600,
-          "ACST": int(9.5 * 3600),
-          "ACDT": int(10.5 * 3600),
-          "AWST": 8 * 3600
-        }
-        info = parse(info, fuzzy=True, tzinfos=tz_seconds).isoformat()
+      if m.type == Modifier.prop_type_iso_date_parser:
+        info = self._process_iso_date_parser_modifier(m.specific_modifier, info)
+      elif m.type == Modifier.prop_type_regex:
+        info = self._process_regex_modifier(m.specific_modifier, info)
+      
+      if info == None:
+        return None
 
     return info
 
+  def _process_iso_date_parser_modifier(self, modifier: IsoDateParserModifier, info: str) -> str | None:
+    tz_seconds = {
+      "UTC": 0,
+      "EST": -5 * 3600,
+      "EDT": -4 * 3600,
+      "CST": -6 * 3600,
+      "CDT": -5 * 3600,
+      "MST": -7 * 3600,
+      "MDT": -6 * 3600,
+      "PST": -8 * 3600,
+      "PDT": -7 * 3600,
+      "GMT": 0,
+      "BST": 1 * 3600,
+      "IST": int(5.5 * 3600),
+      "CET": 1 * 3600,
+      "CEST": 2 * 3600,
+      "AEST": 10 * 3600,
+      "AEDT": 11 * 3600,
+      "ACST": int(9.5 * 3600),
+      "ACDT": int(10.5 * 3600),
+      "AWST": 8 * 3600
+    }
+    return parse(info, fuzzy=True, tzinfos=tz_seconds).isoformat()
+  
+  def _process_regex_modifier(self, modifier: RegexModifier, info: str) -> str | None:
+    # extract or match based on regex 
+    for pattern in modifier.regex:
+      match = re.search(pattern, info)
+      if match:
+        # return the original string if any regex matches
+        if modifier.return_type == RegexModifier.prop_return_original:
+          return info
+
+        # return only the first match if any regex matches
+        elif modifier.return_type == RegexModifier.prop_return_first:
+          return match.group(0)
+        
+      # TODO: throw error, although it shouldn't happen with proper config validation
     
+    # in any other case, return None
+    return None

@@ -227,15 +227,16 @@ class ComponentSelector:
       # don't do any more parsing
       return
 
-    # leaf node, try to get the extraction config
+    # leaf node
+    self.type = ComponentSelector.selector_type_leaf
+
+    # try to get the extraction config
     extract = config.get(ComponentSelector.prop_extract)
     if extract is not None:
       ConfigValidator.must_have_type(ComponentSelector.prop_extract, extract, dict)
       self.extract = PropExtract(extract)
     else:
       self.extract = PropExtract() # default extract type
-    
-    self.type = ComponentSelector.selector_type_leaf
 
 
 class PropExtract:
@@ -256,7 +257,7 @@ class PropExtract:
   prop_type_values = [prop_type_value_text, prop_type_value_attribute, prop_type_value_html]
 
   prop_attribute_key = "key"
-  prop_regex_extractor = "regex_extractor"
+  # prop_regex_extractor = "regex_extractor"
   prop_modifiers = "modifiers"
 
   def __init__(self, config: dict = {}):
@@ -271,25 +272,38 @@ class PropExtract:
       self.attribute_key: str = config.get(PropExtract.prop_attribute_key)
       ConfigValidator.must_have_type(PropExtract.prop_attribute_key, self.attribute_key, str)
     
-    regex_extractor = config.get(PropExtract.prop_regex_extractor)
-    if regex_extractor is not None:
-      self.regex_extractor = PropExtractRegex(regex_extractor)
-    else:
-      self.regex_extractor = None
-
     modifiers = config.get(PropExtract.prop_modifiers)
     if modifiers is not None:
+      ConfigValidator.must_have_type(PropExtract.prop_modifiers, modifiers, list)
+      ConfigValidator.must_not_be_empty(PropExtract.prop_modifiers, modifiers)
       self.modifiers = [ Modifier(m) for m in modifiers ]
     else:
       self.modifiers = None
   
-class PropExtractRegex:
+class Modifier:
   """
   {
-    "regex": [str],
-    "return": "original" | "first",
+    "type": "iso_date_parser" | "regex",
   }
   """
+  prop_type = "type"
+  prop_type_iso_date_parser = "iso_date_parser"
+  prop_type_regex = "regex"
+  prop_type_values = [prop_type_iso_date_parser, prop_type_regex]
+
+  def __init__(self, config: dict):
+    self.type = config.get(Modifier.prop_type)
+    ConfigValidator.must_have_type(Modifier.prop_type, self.type, str)
+    ConfigValidator.must_have_value(Modifier.prop_type, self.type, Modifier.prop_type_values)
+  
+    if self.type == Modifier.prop_type_iso_date_parser:
+      self.specific_modifier = IsoDateParserModifier()
+    elif self.type == Modifier.prop_type_regex:
+      self.specific_modifier = RegexModifier(config)
+
+class IsoDateParserModifier: pass
+
+class RegexModifier: 
   prop_regex = "regex"
   prop_return = "return"
   prop_return_original = "original"
@@ -297,31 +311,15 @@ class PropExtractRegex:
   prop_return_values = [prop_return_original, prop_return_first]
 
   def __init__(self, config: dict):
-    self.regex = config.get(PropExtractRegex.prop_regex)
-    ConfigValidator.must_have_type(PropExtractRegex.prop_regex, self.regex, list)
-    ConfigValidator.must_not_be_empty(PropExtractRegex.prop_regex, self.regex)
-    ConfigValidator.iterable_must_have_types(PropExtractRegex.prop_regex, self.regex, [str])
+    self.regex = config.get(RegexModifier.prop_regex)
+    ConfigValidator.must_have_type(RegexModifier.prop_regex, self.regex, list)
+    ConfigValidator.must_not_be_empty(RegexModifier.prop_regex, self.regex)
+    ConfigValidator.iterable_must_have_types(RegexModifier.prop_regex, self.regex, [str])
 
-    self.return_type = config.get(PropExtractRegex.prop_return)
+    self.return_type = config.get(RegexModifier.prop_return)
     if self.return_type is not None:
-      ConfigValidator.must_have_type(PropExtractRegex.prop_return, self.return_type, str)
-      ConfigValidator.must_have_value(PropExtractRegex.prop_return, self.return_type, PropExtractRegex.prop_return_values)
+      ConfigValidator.must_have_type(RegexModifier.prop_return, self.return_type, str)
+      ConfigValidator.must_have_value(RegexModifier.prop_return, self.return_type, RegexModifier.prop_return_values)
     else:
       # by default return the original string
-      self.return_type = PropExtractRegex.prop_return_original
-
-
-class Modifier:
-  """
-  {
-    "type": "date_modifier",
-  }
-  """
-  prop_type = "type"
-  prop_type_iso_date_modifier = "iso_date_modifier"
-  prop_type_values = [prop_type_iso_date_modifier]
-
-  def __init__(self, config: dict):
-    self.type = config.get(Modifier.prop_type)
-    ConfigValidator.must_have_type(Modifier.prop_type, self.type, str)
-    ConfigValidator.must_have_value(Modifier.prop_type, self.type, Modifier.prop_type_values)
+      self.return_type = RegexModifier.prop_return_original

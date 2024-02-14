@@ -451,11 +451,14 @@ class TestProcessSelector:
         "select": "all",
         "extract": {
           "type": "text",
-          "regex_extractor": {
-            "regex": [
-              ".*foo.*"
-            ]
-          }
+          "modifiers": [
+            {
+              "type": "regex",
+              "regex": [
+                ".*foo.*"
+              ]
+            }
+          ]
         },
       },
       {
@@ -470,24 +473,28 @@ class TestProcessSelector:
       <html>
         <p>blah1 foo blah2</p>
         <p>This string doesn't contain only bar</p>
+        <p>blah4 string</p>
       </html>
       """,
       {
-        "key": "first_match",
+        "key": "first_match_in_every_text",
         "select": "all",
         "extract": {
           "type": "text",
-          "regex_extractor": {
-            "return": "first",
-            "regex": [
-              "blah."
-            ]
-          }
+          "modifiers": [
+            {
+              "type": "regex",
+              "return": "first",
+              "regex": [
+                "blah."
+              ]
+            }
+          ]
         },
       },
       {
-        "first_match": [
-          "blah1", 
+        "first_match_in_every_text": [
+          "blah1", "blah4" 
         ]
       }
     ),
@@ -505,15 +512,16 @@ class TestProcessSelector:
       """,
       {
         "key": "dates",
+        "include_self": True,
         "children": [
           {
             "key": "1",
-            "selector": "p[id='1']",
+            "selector": "[id='1']",
             "extract": {
               "type": "text",
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -525,7 +533,7 @@ class TestProcessSelector:
               "type": "text",
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -537,7 +545,7 @@ class TestProcessSelector:
               "type": "text",
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -550,12 +558,12 @@ class TestProcessSelector:
               "regex_extractor": {
                 "return": "first",
                 "regex": [
-                  "[0-9]{2}:[0-9]{2}.*"
+                  "[0-9]+:[0-9]{2}.*"
                 ]
               },
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -568,12 +576,12 @@ class TestProcessSelector:
               "regex_extractor": {
                 "return": "first",
                 "regex": [
-                  "[0-9]{2}:[0-9]{2}.*"
+                  "[0-9]+:[0-9]{2}.*"
                 ]
               },
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -586,12 +594,12 @@ class TestProcessSelector:
               "regex_extractor": {
                 "return": "first",
                 "regex": [
-                  "[0-9]{2}:[0-9]{2}.*"
+                  "[0-9]+:[0-9]{2}.*"
                 ]
               },
               "modifiers": [
                 {
-                  "type": "iso_date_modifier",
+                  "type": "iso_date_parser",
                 }
               ]
             }
@@ -599,14 +607,14 @@ class TestProcessSelector:
         ]
       },
       {
-        "dates": {
-          "1": "2024-02-13T09:03:00",
-          "2": "2024-02-13T16:17:10+00:00",
-          "3": "2024-02-13T12:47:48+00:00",
-          "4": "2024-02-13T11:22:00-05:00",
-          "5": "2024-02-13T10:39:00-05:00",
-          "6": "2024-02-13T16:04:00-02:00",
-        }
+        "dates": [
+          {"1": "2024-02-13T09:03:00"},
+          {"2": "2024-02-13T16:17:10+00:00"},
+          {"3": "2024-02-13T12:47:48+00:00"},
+          {"4": "2024-02-13T11:22:00-05:00"},
+          {"5": "2024-02-13T10:39:00-05:00"},
+          {"6": "2024-02-13T16:04:00-02:00"},
+        ]
       }
     ),
   ])
