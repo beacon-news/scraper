@@ -52,9 +52,9 @@ if __name__ == "__main__":
 
   args = create_argument_parser().parse_args()
   if args.config.endswith(".json"):
-    config = ConfigFactory().fromJsonFile(args.config)
+    config = ConfigFactory.fromJsonFile(args.config)
   elif args.config.endswith(".yaml"):
-    config = ConfigFactory().fromYamlFile(args.config)
+    config = ConfigFactory.fromYamlFile(args.config)
   else:
     raise Exception("config file must be json or yaml")
   

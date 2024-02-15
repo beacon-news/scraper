@@ -6,9 +6,9 @@ from pathlib import Path
 import json
 from datetime import datetime
 
-from config import Config, ScrapeConfig, ComponentSelector
+from config import Config, ScrapeConfig, ComponentSelectorConfig
 import log_utils
-from selector_processor import SelectorProcessor
+from selector_processor import SelectorProcessor, setLogLevels
 from article_cache import ArticleCache, NoOpArticleCache
 from datetime import timedelta
 
@@ -33,7 +33,10 @@ class Scraper:
       name=self.__class__.__name__,
       level=loglevel,
     )
-    self.selector_processor = SelectorProcessor(loglevel)
+
+    setLogLevels(loglevel)
+
+    # SelectorProcessor.setLogLevel(logging.INFO) 
 
   def scrape_articles(
       self, 
@@ -93,7 +96,8 @@ class Scraper:
 
         self.log.info(f"finished scraping {article_url}, saved to {article_path}")
     
-  def _scrape_article(self, selector: ComponentSelector, article_url: str) -> dict | None:
+  # def _scrape_article(self, selector: ComponentSelector, article_url: str) -> dict | None:
+  def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     if not self._is_url_valid(article_url):
       self.log.warning(f"url {article_url} is not valid, not scraping it")
       return None
@@ -102,7 +106,8 @@ class Scraper:
     html = page.read().decode("utf-8")
 
     self.log.debug("trying to select article components")
-    return self.selector_processor.process(selector, html)
+    return SelectorProcessor.process_html(selector, html)
+    # return self.selector_processor.process_html(selector, html)
 
 
   def _find_article_urls(
@@ -126,7 +131,8 @@ class Scraper:
       html = page.read().decode("utf-8")
 
       # select all urls using the specified selectors
-      url_dict = self.selector_processor.process(scrape_config.url_selectors, html)
+      # url_dict = self.selector_processor.process(scrape_config.url_selectors, html)
+      url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
       url_list = self._flatten_dict_to_list(url_dict)
 
       self.log.debug(f"using article limit {scrape_options.article_limit}")
