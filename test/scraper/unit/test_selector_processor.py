@@ -599,11 +599,7 @@ class TestProcessSelector:
     ),
   ])
   def test_selector_result(self, html: str, selector_config: dict, expected: dict):
-    # s = ComponentSelector(selector_config)
-    # result = SelectorProcessor().process(s, html)
-    # root = BeautifulSoup(html, "html.parser").select_one("html")
     s = ComponentSelectorConfig(selector_config)
-    # result = SelectorProcessor(s).process_html(html)
     result = SelectorProcessor.process_html(s, html)
     assert result == expected
 

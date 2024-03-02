@@ -33,10 +33,7 @@ class Scraper:
       name=self.__class__.__name__,
       level=loglevel,
     )
-
     setLogLevels(loglevel)
-
-    # SelectorProcessor.setLogLevel(logging.INFO) 
 
   def scrape_articles(
       self, 
@@ -96,7 +93,6 @@ class Scraper:
 
         self.log.info(f"finished scraping {article_url}, saved to {article_path}")
     
-  # def _scrape_article(self, selector: ComponentSelector, article_url: str) -> dict | None:
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     if not self._is_url_valid(article_url):
       self.log.warning(f"url {article_url} is not valid, not scraping it")
@@ -107,7 +103,6 @@ class Scraper:
 
     self.log.debug("trying to select article components")
     return SelectorProcessor.process_html(selector, html)
-    # return self.selector_processor.process_html(selector, html)
 
 
   def _find_article_urls(
@@ -131,7 +126,6 @@ class Scraper:
       html = page.read().decode("utf-8")
 
       # select all urls using the specified selectors
-      # url_dict = self.selector_processor.process(scrape_config.url_selectors, html)
       url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
       url_list = self._flatten_dict_to_list(url_dict)
 
@@ -152,31 +146,6 @@ class Scraper:
 
     return list(scraped_urls)
 
-    #   soup = BeautifulSoup(html, "html.parser")
-
-      # self.log.debug(f"using article limit {scrape_options.article_limit}")
-
-    #   anchor_tags = soup.find_all("a", href=True)
-    #   for link in anchor_tags:
-    #     href_attr = link.get("href")
-    #     absolute_url = self._create_absolute_link(href_attr, url)
-
-    #     if not self._url_matches_any_pattern(absolute_url, scrape_config.url_selectors):
-    #       continue
-        
-    #     self.log.debug(f"scrape config with url {scrape_config.urls} matching {absolute_url}")
-
-    #     if scrape_options.article_cache.contains(absolute_url):
-    #       self.log.info(f"url {absolute_url} already in cache, skipping")
-    #       continue
-        
-    #     scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
-    #     scraped_urls.add(absolute_url)
-
-    #     if len(scraped_urls) >= scrape_options.article_limit:
-    #       return list(scraped_urls)
-
-    # return list(scraped_urls)
   
   def _flatten_dict_to_list(self, d: dict | None) -> dict:
     if d is None:
@@ -193,17 +162,6 @@ class Scraper:
 
     return result
   
-  # def _url_matches_any_pattern(self, url: str, regex_url_patterns: list[str]):
-
-  #   # TODO: optimize by compiling patterns first
-  #   for p in regex_url_patterns:
-  #     self.log.debug(f"trying to match {p} to url {url}")
-  #     if re.match(p, url):
-  #       self.log.debug(f"pattern {p} matches url {url}")
-  #       return True
-    
-  #   self.log.debug(f"url {url} not matching any url pattern from {';'.join(regex_url_patterns)}")
-  #   return False
     
   def _create_absolute_link(self, absolute_or_relative_url: str, base_url: str) -> str:
     link_parsed = urlparse(absolute_or_relative_url)
@@ -215,7 +173,8 @@ class Scraper:
       return urljoin(base_url, link_parsed.path)
 
     return absolute_or_relative_url
-  
+
+
   def _is_url_valid(self, url: str) -> bool:
     """checks if url has a scheme and a host"""
     parsed = urlparse(url)
