@@ -1,47 +1,7 @@
-from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
-
-class ArticleCache(ABC):
-  """
-  Stores the URLs of articles that have already been scraped.
-  """
-
-  @abstractmethod
-  def contains(self, article_url: str) -> bool:
-    """
-    Returns true if article_url is in the cache,
-    and its TTL has not expired
-    """
-    raise NotImplementedError
-  
-
-  @abstractmethod
-  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
-    """
-    Stores the "article_url" with a TTL indicating that 
-    the article has been scraped, and the scraped information 
-    is valid until datetime.now() + "ttl" timedelta
-    """
-    raise NotImplementedError
-  
-  @abstractmethod
-  def remove(self, article_urL: str) -> None:
-    """
-    Removes the "article_url" from the cache
-    """
-    raise NotImplementedError
-
-class NoOpArticleCache(ArticleCache):
-  def contains(self, article_url: str) -> bool: 
-    return False
-
-  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
-    pass
-
-  def remove(self, article_urL: str) -> None:
-    pass
+from article_cache import ArticleCache
 
 class FileArticleCache(ArticleCache):
 
@@ -64,7 +24,7 @@ class FileArticleCache(ArticleCache):
         url, exp_date = self.__parse_line(line)
         self.__cache[url] = exp_date 
   
-  def __parse_line(self, line: str) -> (str, str):
+  def __parse_line(self, line: str) -> tuple[str, str]:
     try:
       d = json.loads(line)
       return d["url"], datetime.fromisoformat(d["expiration_date"])

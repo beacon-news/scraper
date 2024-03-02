@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
 from config import ConfigFactory
-from scraper import *
+from scraper.src.scraper.scraper import ScrapeOptions, Scraper
 import logging
-from article_cache import *
+from scraper.src.article_cache.noop_cache import NoOpArticleCache
+from scraper.src.article_cache.file_cache import FileArticleCache
 
 def create_argument_parser() -> ArgumentParser:
   parser = ArgumentParser(
@@ -52,9 +53,9 @@ if __name__ == "__main__":
 
   args = create_argument_parser().parse_args()
   if args.config.endswith(".json"):
-    config = ConfigFactory().fromJsonFile(args.config)
+    config = ConfigFactory.fromJsonFile(args.config)
   elif args.config.endswith(".yaml"):
-    config = ConfigFactory().fromYamlFile(args.config)
+    config = ConfigFactory.fromYamlFile(args.config)
   else:
     raise Exception("config file must be json or yaml")
   
@@ -78,17 +79,6 @@ if __name__ == "__main__":
     article_limit=limit,
     article_cache=cache,
   )
-
-  # import re
-  # for c in config.scrape_configs:
-  #   print(c.url_patterns)
-  #   p = c.url_patterns[0]
-
-  #   print(p)
-  #   m = re.match(p, 'https://abcnews.go.com/Sports/source-texans-cj-stroud-progressing-nico-collins-play/story?id=105897237')
-  #   print(m)
-  
-  # exit(1)
 
   Scraper(loglevel).scrape_articles(
     config=config, 

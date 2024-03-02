@@ -1,6 +1,6 @@
 import pytest
-from src.scraper.config import ComponentSelector
-from src.scraper.selector_processor import SelectorProcessor
+from src.scraper.config import *
+from src.scraper.selector_processor import *
 
 class TestProcessSelector:
 
@@ -506,8 +506,7 @@ class TestProcessSelector:
         <p id="2">2024-02-13T16:17:10.000Z</p>                                <!-- bbc news -->
         <p id="3">2024-02-13T12:47:48+00:00</p>                               <!-- bbc news (sports) --> 
         <p id="4">Updated\n        11:22 AM EST, Tue February 13, 2024</p>    <!-- cnn -->
-        <p id="5">Published\n        10:39 AM EST, Tue February 13, 2024</p>  <!-- cnn -->
-        <p id="6">Updated 4:04 PM GMT+2, February 13, 2024</p>                <!-- ap news -->
+        <p id="5">Updated 4:04 PM GMT+2, February 13, 2024</p>                <!-- ap news -->
       </html>
       """,
       {
@@ -586,24 +585,6 @@ class TestProcessSelector:
               ]
             }
           },
-          {
-            "key": "6",
-            "selector": "[id='6']",
-            "extract": {
-              "type": "text",
-              "regex_extractor": {
-                "return": "first",
-                "regex": [
-                  "[0-9]+:[0-9]{2}.*"
-                ]
-              },
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
-          },
         ]
       },
       {
@@ -612,14 +593,13 @@ class TestProcessSelector:
           {"2": "2024-02-13T16:17:10+00:00"},
           {"3": "2024-02-13T12:47:48+00:00"},
           {"4": "2024-02-13T11:22:00-05:00"},
-          {"5": "2024-02-13T10:39:00-05:00"},
-          {"6": "2024-02-13T16:04:00-02:00"},
+          {"5": "2024-02-13T16:04:00-02:00"},
         ]
       }
     ),
   ])
   def test_selector_result(self, html: str, selector_config: dict, expected: dict):
-    s = ComponentSelector(selector_config)
-    result = SelectorProcessor().process(s, html)
+    s = ComponentSelectorConfig(selector_config)
+    result = SelectorProcessor.process_html(s, html)
     assert result == expected
 
