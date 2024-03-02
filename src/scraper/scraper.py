@@ -2,43 +2,42 @@ from urllib.request import urlopen
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 import logging
-from pathlib import Path
-import json
 from datetime import datetime
 
-from config import Config, ScrapeConfig, ComponentSelectorConfig
-import log_utils
-from selector_processor import SelectorProcessor, setLogLevels
+from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig
+import utils.log_utils as log_utils
+from scraper.selector_processor import SelectorProcessor, set_log_levels
 from article_cache import ArticleCache, NoOpArticleCache
+from article_store import ArticleStore, NoOpArticleStore
 from datetime import timedelta
 
 class ScrapeOptions:
 
   def __init__(
       self, 
-      output_dir: str, 
       article_limit: int | float = float("inf"),
       ttl: timedelta = timedelta(weeks=1),
       article_cache: ArticleCache = NoOpArticleCache(),
+      article_store: ArticleStore = NoOpArticleStore(),
   ):
-    self.output_dir = output_dir
     self.article_limit = article_limit
     self.ttl = ttl
     self.article_cache = article_cache
+    self.article_store = article_store
 
 class Scraper:
 
   def __init__(self, loglevel: int = logging.INFO):
-    self.log = log_utils.createConsoleLogger(
+    self.log = log_utils.create_console_logger(
       name=self.__class__.__name__,
       level=loglevel,
     )
-    setLogLevels(loglevel)
+    set_log_levels(loglevel)
 
   def scrape_articles(
       self, 
       config: Config, 
-      scrape_options: ScrapeOptions = ScrapeOptions(output_dir="scraper_output"),
+      scrape_options: ScrapeOptions,
   ) -> None:
 
     scrape_config_to_article_urls: dict[ScrapeConfig, list[str]] = {}
@@ -49,12 +48,6 @@ class Scraper:
       )
 
     # at this point all urls are valid and can be scraped
-
-    # for testing 
-
-    # scrape_config_to_articles = {
-    #   config.scrape_configs[0]: ["https://www.bbc.com/news/world-europe-67529571"]
-    # }
 
     for scrape_config, urls in scrape_config_to_article_urls.items():
       for article_url in urls:
@@ -80,29 +73,38 @@ class Scraper:
         }
 
         # TODO: call an interface which stores the results
-        parsed_url = urlparse(article_url)
-        article_file = f"{parsed_url.netloc}{parsed_url.path.replace('/','_')}.json"
+        try:
+          scrape_options.article_store.store(article_url, article_result)
+        except Exception as e:
+          self.log.exception(f"error while trying to store article {article_url}")
 
-        dir = Path(scrape_options.output_dir)
-        dir.mkdir(parents=True, exist_ok=True)
+        # parsed_url = urlparse(article_url)
+        # article_file = f"{parsed_url.netloc}{parsed_url.path.replace('/','_')}.json"
 
-        article_path = str(dir.joinpath(Path(article_file)))
+        # dir = Path(scrape_options.output_dir)
+        # dir.mkdir(parents=True, exist_ok=True)
 
-        with open(article_path, "w") as f:
-          json.dump(article_result, f)
+        # article_path = str(dir.joinpath(Path(article_file)))
 
-        self.log.info(f"finished scraping {article_url}, saved to {article_path}")
+        # with open(article_path, "w") as f:
+        #   json.dump(article_result, f)
+
+        self.log.info(f"finished scraping {article_url}")
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     if not self._is_url_valid(article_url):
       self.log.warning(f"url {article_url} is not valid, not scraping it")
       return None
 
-    page = urlopen(article_url)
-    html = page.read().decode("utf-8")
+    try:
+      page = urlopen(article_url)
+      html = page.read().decode("utf-8")
 
-    self.log.debug("trying to select article components")
-    return SelectorProcessor.process_html(selector, html)
+      self.log.debug("trying to select article components")
+      return SelectorProcessor.process_html(selector, html)
+    except Exception as e:
+      self.log.exception(f"error while trying to scrape {article_url}")
+      return None
 
 
   def _find_article_urls(
@@ -121,28 +123,32 @@ class Scraper:
         continue
 
       # TODO: catch errors here
-      page = urlopen(url)
+      try:
 
-      html = page.read().decode("utf-8")
+        page = urlopen(url)
+        html = page.read().decode("utf-8")
 
-      # select all urls using the specified selectors
-      url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
-      url_list = self._flatten_dict_to_list(url_dict)
+        # select all urls using the specified selectors
+        url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
+        url_list = self._flatten_dict_to_list(url_dict)
 
-      self.log.debug(f"using article limit {scrape_options.article_limit}")
-      
-      for scraped_url in url_list:
-        absolute_url = self._create_absolute_link(scraped_url, url)
+        self.log.debug(f"using article limit {scrape_options.article_limit}")
+        
+        for scraped_url in url_list:
+          absolute_url = self._create_absolute_link(scraped_url, url)
 
-        if scrape_options.article_cache.contains(absolute_url):
-          self.log.info(f"url {absolute_url} already in cache, skipping")
-          continue
+          if scrape_options.article_cache.contains(absolute_url):
+            self.log.info(f"url {absolute_url} already in cache, skipping")
+            continue
 
-        scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
-        scraped_urls.add(absolute_url)
+          scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
+          scraped_urls.add(absolute_url)
 
-        if len(scraped_urls) >= scrape_options.article_limit:
-          return list(scraped_urls)
+          if len(scraped_urls) >= scrape_options.article_limit:
+            return list(scraped_urls)
+    
+      except Exception as e:
+        self.log.exception(f"error while finding article urls for {url}") 
 
     return list(scraped_urls)
 

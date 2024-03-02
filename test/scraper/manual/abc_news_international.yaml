@@ -21,6 +21,8 @@ pages:
 
     - key: publish_date
       selector: "[data-testid=prism-byline] div:first-of-type div div:nth-of-type(2)"
+      modifiers:
+      - type: iso_date_parser
 
     - key: article
       children:

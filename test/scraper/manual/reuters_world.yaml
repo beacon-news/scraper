@@ -18,6 +18,8 @@ pages:
 
     - key: publish_date
       selector: "header time span"
+      modifiers:
+      - type: iso_date_parser
 
     - key: paragraphs
       selector: "[data-component=text-block]"

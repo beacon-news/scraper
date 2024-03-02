@@ -218,11 +218,13 @@ class LeafComponentSelectorConfig:
   ComponentSelectorConfig | 
   {
     "extract": ExtractConfig
+    <optional> "modifiers": [Modifier]
   }
   This class contains the specific parts for the "leaf" selector type.
   """
   
   prop_extract = "extract"
+  prop_modifiers = "modifiers"
 
   def __init__(self, config: dict):
 
@@ -234,12 +236,20 @@ class LeafComponentSelectorConfig:
     else:
       self.extract = ExtractConfig() # default extract type
 
+    # create the modifier configs
+    modifiers = config.get(LeafComponentSelectorConfig.prop_modifiers)
+    if modifiers is not None:
+      ConfigValidator.must_have_type(LeafComponentSelectorConfig.prop_modifiers, modifiers, list)
+      ConfigValidator.must_not_be_empty(LeafComponentSelectorConfig.prop_modifiers, modifiers)
+      self.modifiers = [ ModifierConfig(m) for m in modifiers ]
+    else:
+      self.modifiers = []
+
 
 class ExtractConfig:
   """
   {
     "type": "text" | "html" | "attribute",
-    <optional> "modifiers": [Modifier]
   }
   This class contains the common parts for the extractor types.
   """
@@ -250,7 +260,7 @@ class ExtractConfig:
   prop_type_value_html = "html"
   prop_type_values = [prop_type_value_text, prop_type_value_attribute, prop_type_value_html]
 
-  prop_modifiers = "modifiers"
+  # prop_modifiers = "modifiers"
 
   def __init__(self, config: dict = {}):
     # try to get the type, extract text by default
@@ -266,15 +276,6 @@ class ExtractConfig:
     # so don't create specific extractor for text and html
     if self.type == ExtractConfig.prop_type_value_attribute:
       self.specific_extractor_config = AttributeExtractConfig(config)
-
-    # create the modifier configs
-    modifiers = config.get(ExtractConfig.prop_modifiers)
-    if modifiers is not None:
-      ConfigValidator.must_have_type(ExtractConfig.prop_modifiers, modifiers, list)
-      ConfigValidator.must_not_be_empty(ExtractConfig.prop_modifiers, modifiers)
-      self.modifiers = [ ModifierConfig(m) for m in modifiers ]
-    else:
-      self.modifiers = []
 
 
 class AttributeExtractConfig:

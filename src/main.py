@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from config import ConfigFactory
-from scraper.src.scraper.scraper import ScrapeOptions, Scraper
+from scraper.config import ConfigFactory
+from scraper.scraper import ScrapeOptions, Scraper
 import logging
-from scraper.src.article_cache.noop_cache import NoOpArticleCache
-from scraper.src.article_cache.file_cache import FileArticleCache
+from article_cache import NoOpArticleCache, FileArticleCache
+from article_store import NoOpArticleStore, FileArticleStore
 
 def create_argument_parser() -> ArgumentParser:
   parser = ArgumentParser(
@@ -19,7 +19,7 @@ def create_argument_parser() -> ArgumentParser:
   parser.add_argument(
     "-o", "--output-dir",
     type=str,
-    required=True,
+    required=False,
     dest="output_dir",
     help="Output directory to save scraped content to.",
   )
@@ -69,15 +69,20 @@ if __name__ == "__main__":
   else:
     cache = NoOpArticleCache()
   
+  if args.output_dir:
+    store = FileArticleStore(output_dir=args.output_dir)
+  else:
+    store = NoOpArticleStore()
+  
   if args.article_limit:
     limit = args.article_limit
   else:
     limit = float("inf")
 
   options = ScrapeOptions(
-    output_dir=args.output_dir,
     article_limit=limit,
     article_cache=cache,
+    article_store=store,
   )
 
   Scraper(loglevel).scrape_articles(

@@ -2,10 +2,22 @@ from datetime import datetime, timedelta
 import json
 from pathlib import Path
 from article_cache import ArticleCache
+from utils import log_utils
+import logging
 
 class FileArticleCache(ArticleCache):
 
+  @classmethod
+  def configure_logging(cls, level: int):
+    cls.loglevel = level
+    cls.log = log_utils.create_console_logger(
+      name=cls.__name__,
+      level=level
+    )
+
   def __init__(self, cache_file_path: str):
+    self.configure_logging(logging.INFO)
+
     self.__cache_file_path = cache_file_path
     self.__cache = {} 
     self.__create_cache_file()
@@ -17,12 +29,14 @@ class FileArticleCache(ArticleCache):
     file = Path(self.__cache_file_path)
     file.parent.mkdir(parents=True, exist_ok=True)
     file.touch(exist_ok=True)
+    self.log.info(f"created/asserted cache file: {self.__cache_file_path}")
 
   def __load_cache(self):
     with open(self.__cache_file_path, "r") as f:
       for line in f:
         url, exp_date = self.__parse_line(line)
         self.__cache[url] = exp_date 
+    self.log.debug(f"loaded cache from file")
   
   def __parse_line(self, line: str) -> tuple[str, str]:
     try:
@@ -39,10 +53,12 @@ class FileArticleCache(ArticleCache):
         return True
       else:
         # trigger a prune in case the TTL has expired
+        self.log.debug(f"pruning expired cache entries because of {article_url}")
         self.__recreate_cache()
     return False
   
   def __recreate_cache(self):
+    self.log.debug(f"recreating cache for entries with valid TTLs")
     self.__recreate_valid_file()
     self.__load_cache()
         
@@ -64,10 +80,12 @@ class FileArticleCache(ArticleCache):
       
     if article_url in self.__cache:
       # update the cache and trigger a prune (easy fix instead of changing a specific line in the file)
+      self.log.debug(f"cache hit for {article_url}, updating cache")
       self.__cache[article_url] = exp_date
       self.__recreate_cache()
     else:
       # append to the cache file
+      self.log.debug(f"cache miss for {article_url}, appending to cache")
       self.__cache[article_url] = exp_date
       with open(self.__cache_file_path, "a") as f:
         self.__write_line_to_file(f, article_url, exp_date)
@@ -80,6 +98,7 @@ class FileArticleCache(ArticleCache):
     fdesc.write(json.dumps(d) + "\n")
   
   def remove(self, article_url: str) -> None:
+    self.log.debug(f"removing {article_url} from cache")
     if article_url in self.__cache:
       del self.__cache[article_url]
       self.__recreate_cache()

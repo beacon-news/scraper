@@ -1,6 +1,6 @@
-from config import *
+from scraper.config import *
 from bs4 import BeautifulSoup, Tag
-import log_utils
+import utils.log_utils as log_utils
 import logging
 from dateutil.parser import parse
 import re
@@ -8,7 +8,7 @@ import re
   
 class SelectorProcessorException(Exception): pass
 
-def setLogLevels(level: int):
+def set_log_levels(level: int):
   components = [
     SelectorProcessor,
     SingleChildSelectorProcessor,
@@ -19,20 +19,20 @@ def setLogLevels(level: int):
   ]
 
   for c in components:
-    if getattr(c, "setLogLevel", None) is not None:
-      c.setLogLevel(level)
+    if getattr(c, "set_log_level", None) is not None:
+      c.set_log_level(level)
 
 class SelectorProcessor:
 
-  log = log_utils.createConsoleLogger(
+  log = log_utils.create_console_logger(
     name="SelectorProcessor",
     level=logging.INFO
   )
 
   @classmethod
-  def setLogLevel(cls, level: int):
+  def set_log_level(cls, level: int):
     cls.loglevel = level
-    cls.log = log_utils.createConsoleLogger(
+    cls.log = log_utils.create_console_logger(
       name="SelectorProcessor",
       level=level
     )
@@ -99,15 +99,15 @@ class SelectorProcessor:
   
 class SingleChildSelectorProcessor:
 
-  log = log_utils.createConsoleLogger(
+  log = log_utils.create_console_logger(
     name="SingleChildSelectorProcessor",
     level=logging.INFO
   )
 
   @classmethod
-  def setLogLevel(cls, level: int):
+  def set_log_level(cls, level: int):
     cls.loglevel = level
-    cls.log = log_utils.createConsoleLogger(
+    cls.log = log_utils.create_console_logger(
       name="SingleChildSelectorProcessor",
       level=level
     )
@@ -145,15 +145,15 @@ class SingleChildSelectorProcessor:
     
 class MultiChildSelectorProcessor:
   
-  log = log_utils.createConsoleLogger(
+  log = log_utils.create_console_logger(
     name="MultiChildSelectorProcessor",
     level=logging.INFO
   )
 
   @classmethod
-  def setLogLevel(cls, level: int):
+  def set_log_level(cls, level: int):
     cls.loglevel = level
-    cls.log = log_utils.createConsoleLogger(
+    cls.log = log_utils.create_console_logger(
       name="MultiChildSelectorProcessor",
       level=level
     )
@@ -200,15 +200,15 @@ class MultiChildSelectorProcessor:
 
 class LeafSelectorProcessor:
 
-  log = log_utils.createConsoleLogger(
+  log = log_utils.create_console_logger(
     name="LeafSelectorProcessor",
     level=logging.INFO
   )
 
   @classmethod
-  def setLogLevel(cls, level: int):
+  def set_log_level(cls, level: int):
     cls.loglevel = level
-    cls.log = log_utils.createConsoleLogger(
+    cls.log = log_utils.create_console_logger(
       name="LeafSelectorProcessor",
       level=level
     )
@@ -224,6 +224,8 @@ class LeafSelectorProcessor:
 
     # try to extract some info
     info = ExtractorProcessor.process(config.leaf_selector_config.extract, elem) 
+    info = LeafSelectorProcessor.process_modifiers(config.leaf_selector_config, info)
+
     if info is None:
       LeafSelectorProcessor.log.debug(f"no info found for component: {config.key}, selector: {config.css_selector}, extract type: {config.leaf_selector_config.extract.type}")
     
@@ -239,28 +241,46 @@ class LeafSelectorProcessor:
 
     results = []
     for elem in elements: 
-      res = ExtractorProcessor.process(config.leaf_selector_config.extract, elem)
-      if res is not None:
-        results.append(res)
+      info = ExtractorProcessor.process(config.leaf_selector_config.extract, elem)
+      info = LeafSelectorProcessor.process_modifiers(config.leaf_selector_config, info)
+
+      if info is not None:
+        results.append(info)
 
     if len(results) == 0:
+      LeafSelectorProcessor.log.debug(f"no info found for component: {config.key}, selector: {config.css_selector}, extract type: {config.leaf_selector_config.extract.type}")
       return None
 
     return results
+  
+  @staticmethod
+  def process_modifiers(config: LeafComponentSelectorConfig, info: str):
+    for m in config.modifiers:
+      try:
+        info = ModifierProcessor.process(m, info)
+      except Exception as e:
+        LeafSelectorProcessor.log.error(f"failed to process modifier: {m}, error: {e}")
+        return None
+
+      if info is None:
+        LeafSelectorProcessor.log.debug(f"no info found after modifier: {m} applied to: {info}")
+        return None
+    
+    return info
 
 
 class ExtractorProcessor:
 
   loglevel = logging.DEBUG
-  log = log_utils.createConsoleLogger(
+  log = log_utils.create_console_logger(
     name="ExtractorProcessor",
     level=logging.INFO
   )
 
   @classmethod
-  def setLogLevel(cls, level: int):
+  def set_log_level(cls, level: int):
     cls.loglevel = level
-    cls.log = log_utils.createConsoleLogger(
+    cls.log = log_utils.create_console_logger(
       name="ExtractorProcessor",
       level=level
     )
@@ -284,16 +304,6 @@ class ExtractorProcessor:
     
     # remove whitespace from start and end
     info = info.strip()
-
-    for m in config.modifiers:
-      try:
-        info = ModifierProcessor.process(m, info)
-      except Exception as e:
-        ExtractorProcessor.log.error(f"failed to process modifier: {m}, error: {e}")
-
-      if info is None:
-        ExtractorProcessor.log.debug(f"no info found after modifier: {m} applied to: {info}")
-        return None
     
     return info
 

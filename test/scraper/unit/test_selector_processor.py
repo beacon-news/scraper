@@ -1,6 +1,5 @@
 import pytest
-from src.scraper.config import *
-from src.scraper.selector_processor import *
+from src.scraper import *
 
 class TestProcessSelector:
 
@@ -449,17 +448,14 @@ class TestProcessSelector:
       {
         "key": "original_match",
         "select": "all",
-        "extract": {
-          "type": "text",
-          "modifiers": [
-            {
-              "type": "regex",
-              "regex": [
-                ".*foo.*"
-              ]
-            }
-          ]
-        },
+        "modifiers": [
+          {
+            "type": "regex",
+            "regex": [
+              ".*foo.*"
+            ]
+          }
+        ]
       },
       {
         "original_match": [
@@ -479,18 +475,15 @@ class TestProcessSelector:
       {
         "key": "first_match_in_every_text",
         "select": "all",
-        "extract": {
-          "type": "text",
-          "modifiers": [
-            {
-              "type": "regex",
-              "return": "first",
-              "regex": [
-                "blah."
-              ]
-            }
-          ]
-        },
+        "modifiers": [
+          {
+            "type": "regex",
+            "return": "first",
+            "regex": [
+              "blah."
+            ]
+          }
+        ]
       },
       {
         "first_match_in_every_text": [
@@ -516,74 +509,61 @@ class TestProcessSelector:
           {
             "key": "1",
             "selector": "[id='1']",
-            "extract": {
-              "type": "text",
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
+            "modifiers": [
+              {
+                "type": "iso_date_parser",
+              }
+            ]
           },
           {
             "key": "2",
             "selector": "[id='2']",
-            "extract": {
-              "type": "text",
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
+            "modifiers": [
+              {
+                "type": "iso_date_parser",
+              }
+            ]
           },
           {
             "key": "3",
             "selector": "[id='3']",
-            "extract": {
-              "type": "text",
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
+            "modifiers": [
+              {
+                "type": "iso_date_parser",
+              }
+            ]
           },
           {
             "key": "4",
             "selector": "[id='4']",
-            "extract": {
-              "type": "text",
-              "regex_extractor": {
+            "modifiers": [
+              {
+                "type": "regex",
                 "return": "first",
                 "regex": [
                   "[0-9]+:[0-9]{2}.*"
                 ]
               },
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
+              {
+                "type": "iso_date_parser",
+              }
+            ]
           },
           {
             "key": "5",
             "selector": "[id='5']",
-            "extract": {
-              "type": "text",
-              "regex_extractor": {
+            "modifiers": [
+              {
+                "type": "regex",
                 "return": "first",
                 "regex": [
                   "[0-9]+:[0-9]{2}.*"
                 ]
               },
-              "modifiers": [
-                {
-                  "type": "iso_date_parser",
-                }
-              ]
-            }
+              {
+                "type": "iso_date_parser",
+              }
+            ]
           },
         ]
       },

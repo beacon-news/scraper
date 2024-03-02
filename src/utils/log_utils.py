@@ -83,7 +83,7 @@ class JsonFormatter(logging.Formatter):
 
     return json.dumps(msg_dict)
 
-def createConsoleLogger(
+def create_console_logger(
     name: str, 
     level: int = logging.INFO, 
     formatter: logging.Formatter = JsonFormatter()
