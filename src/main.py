@@ -2,34 +2,27 @@ from argparse import ArgumentParser
 from scraper.config import ConfigFactory
 from scraper.scraper import ScrapeOptions, Scraper
 import logging
-from article_cache import NoOpArticleCache, FileArticleCache
-from article_store import NoOpArticleStore, FileArticleStore
+from article_cache import NoOpArticleCache, FileArticleCache, RedisArticleCache
+from article_store import NoOpArticleStore, FileArticleStore, RedisStreamArticleStore
+
+caches = {
+  "noop": NoOpArticleCache,
+  "file": FileArticleCache,
+  "redis": RedisArticleCache,
+}
+
+stores = {
+  "noop": NoOpArticleStore,
+  "file": FileArticleStore,
+  "redis_streams": RedisStreamArticleStore,
+}
 
 def create_argument_parser() -> ArgumentParser:
   parser = ArgumentParser(
     description="tries to scrape news articles based on a config file",
   )
-  parser.add_argument(
-    "-c", "--config-file",
-    type=str,
-    required=True,
-    dest="config",
-    help="Path to the json or yaml config file.",
-  )
-  parser.add_argument(
-    "-o", "--output-dir",
-    type=str,
-    required=False,
-    dest="output_dir",
-    help="Output directory to save scraped content to.",
-  )
-  parser.add_argument(
-    "--cache-file",
-    type=str,
-    required=False,
-    dest="cache_file",
-    help="Cache file path.",
-  )
+
+  # global args
   parser.add_argument(
     "-l", "--limit",
     type=int,
@@ -45,6 +38,49 @@ def create_argument_parser() -> ArgumentParser:
     required=False,
     dest="debug",
     help="Enables debug logging.",
+  )
+
+  # TODO: add proper plugin args for cache and store
+  parser.add_argument(
+    "-c", "--config-file",
+    type=str,
+    required=True,
+    dest="config",
+    help="Path to the json or yaml config file.",
+  )
+
+  # cache args
+  parser.add_argument(
+    "-c", "--cache",
+    type=str,
+    required=False,
+    default="noop",
+    dest="cache",
+    choices=caches.keys()
+  )
+  parser.add_argument(
+    "--cache-file",
+    type=str,
+    required=False,
+    dest="cache_file",
+    help="Cache file path.",
+  )
+
+  # store args
+  parser.add_argument(
+    "-s", "--store",
+    type=str,
+    required=False,
+    default="noop",
+    dest="store",
+    choices=stores.keys()
+  )
+  parser.add_argument(
+    "-o", "--output-dir",
+    type=str,
+    required=False,
+    dest="output_dir",
+    help="Output directory to save scraped content to.",
   )
   return parser
 

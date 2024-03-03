@@ -24,8 +24,10 @@ class ArticleCache(ABC):
     """
     raise NotImplementedError
   
+  # TODO: do we actually need remove functionality ?
+  # ttl should be enough...
   @abstractmethod
-  def remove(self, article_urL: str) -> None:
+  def remove(self, article_url: str) -> None:
     """
     Removes the "article_url" from the cache
     """

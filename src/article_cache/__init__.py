@@ -1,3 +1,4 @@
 from article_cache.article_cache import ArticleCache
 from article_cache.file_cache import FileArticleCache
 from article_cache.noop_cache import NoOpArticleCache
+from article_cache.redis_cache import RedisArticleCache
