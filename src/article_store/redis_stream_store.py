@@ -2,8 +2,8 @@ import logging
 import os
 import time
 import redis
-from src.article_store import ArticleStore
-from src.utils import log_utils
+from article_store import ArticleStore
+from utils import log_utils
 
 class RedisStreamArticleStore(ArticleStore):
 

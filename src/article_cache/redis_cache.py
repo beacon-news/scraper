@@ -3,8 +3,8 @@ import os
 import time
 import redis
 from datetime import timedelta
-from src.article_cache import ArticleCache
-from src.utils import log_utils
+from article_cache import ArticleCache
+from utils import log_utils
 
 class RedisArticleCache(ArticleCache):
 
