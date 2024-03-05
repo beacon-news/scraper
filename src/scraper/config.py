@@ -68,23 +68,23 @@ class Config:
 class ConfigFactory:
 
   @staticmethod
-  def fromJsonString(config_json_string: str) -> Config:
+  def from_json_str(config_json_string: str) -> Config:
     return Config(json.loads(config_json_string))
   
   @staticmethod
-  def fromJsonFile(path: str) -> Config:
+  def from_json_file(path: str) -> Config:
     with open(path) as f:
       return Config(json.load(f))
   
   @staticmethod
-  def fromYamlString(config_yaml_string: str) -> Config:
+  def from_yaml_str(config_yaml_string: str) -> Config:
     return Config(yaml.safe_load(config_yaml_string))
 
   @staticmethod
-  def fromYamlFile(path: str) -> Config:
+  def from_yaml_file(path: str) -> Config:
     with open(path) as f:
       return Config(yaml.safe_load(f))
-
+  
 
 class ScrapeConfig:
   """

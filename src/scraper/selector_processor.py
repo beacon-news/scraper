@@ -224,6 +224,11 @@ class LeafSelectorProcessor:
 
     # try to extract some info
     info = ExtractorProcessor.process(config.leaf_selector_config.extract, elem) 
+
+    if info is None:
+      LeafSelectorProcessor.log.debug(f"no info found for component: {config.key}, selector: {config.css_selector}, extract type: {config.leaf_selector_config.extract.type}")
+      return None
+
     info = LeafSelectorProcessor.process_modifiers(config.leaf_selector_config, info)
 
     if info is None:
@@ -242,6 +247,10 @@ class LeafSelectorProcessor:
     results = []
     for elem in elements: 
       info = ExtractorProcessor.process(config.leaf_selector_config.extract, elem)
+
+      if info is None:
+        continue
+
       info = LeafSelectorProcessor.process_modifiers(config.leaf_selector_config, info)
 
       if info is not None:
@@ -259,11 +268,11 @@ class LeafSelectorProcessor:
       try:
         info = ModifierProcessor.process(m, info)
       except Exception as e:
-        LeafSelectorProcessor.log.error(f"failed to process modifier: {m}, error: {e}")
+        LeafSelectorProcessor.log.exception(f"failed to process modifier: {m.type}, info {info}, error: {e}")
         return None
 
       if info is None:
-        LeafSelectorProcessor.log.debug(f"no info found after modifier: {m} applied to: {info}")
+        LeafSelectorProcessor.log.debug(f"no info found after modifier: {m.type} applied to: {info}")
         return None
     
     return info
@@ -336,6 +345,11 @@ class ModifierProcessor:
   
 class IsoDateParserModifierProcessor:
 
+  log = log_utils.create_console_logger(
+    name="IsoDateParserModifierProcessor",
+    level=logging.INFO
+  )
+
   # additional timezone offsets
   tz_seconds = {
     "UTC": 0,
@@ -361,16 +375,31 @@ class IsoDateParserModifierProcessor:
 
   @staticmethod
   def process(info: str) -> str:
-    return parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds).isoformat()
+    try:
+      return parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds).isoformat()
+    except Exception as e:
+      IsoDateParserModifierProcessor.log.exception(f"failed to parse iso date: {info}, error: {e}")
+      return None
 
 class RegexModifierProcessor:
+
+  log = log_utils.create_console_logger(
+    name="RegexModifierProcessor",
+    level=logging.INFO
+  )
 
   @staticmethod
   def process(config: ModifierConfig, info: str) -> str:
     # extract or match based on regex 
     regex_config = config.specific_modifier_config
     for pattern in regex_config.regex:
-      match = re.search(pattern, info)
+
+      try:
+        match = re.search(pattern, info)
+      except Exception as e:
+        RegexModifierProcessor.log.error(f"failed to search regex: {pattern}, info {info}, error: {e}")
+        continue
+
       if match:
         # return the original string if any regex matches
         if regex_config.return_type == RegexModifierConfig.prop_return_original:
@@ -378,7 +407,11 @@ class RegexModifierProcessor:
 
         # return only the first match if any regex matches
         elif regex_config.return_type == RegexModifierConfig.prop_return_first:
-          return match.group(0)
+          try:
+            return match.group(0)
+          except Exception as e:
+            RegexModifierProcessor.log.error(f"failed to get first match from regex: {pattern}, info {info}, error: {e}")
+            return None
         
         else:
           raise Exception(f"invalid regex modifier return type: {regex_config.return_type}")

@@ -4,6 +4,10 @@ from utils import log_utils
 import logging
 from urllib.parse import urlparse
 import json
+import os
+import click
+from cli_aware import ClickCliAware
+
 
 class FileArticleStore(ArticleStore):
 
@@ -15,8 +19,8 @@ class FileArticleStore(ArticleStore):
       level=level
     )
 
-  def __init__(self, output_dir: str):
-    self.configure_logging(logging.INFO)
+  def __init__(self, output_dir: str, log_level: int = logging.INFO):
+    self.configure_logging(log_level)
     self.__output_dir = output_dir
     self.__create_output_dir()
   
@@ -38,3 +42,73 @@ class FileArticleStore(ArticleStore):
 
     self.log.info(f"saved article with url {article_url} to {article_path}")
     return True
+
+
+# class FileArticleStoreFactory(ClickCliAware):
+
+#   config = {}
+
+#   def register_cli_options(**kwargs) -> list[click.Option]:
+#     return [
+#       click.Option(
+#         param_decls=["--file-store-output-dir"],
+#         help="File store output directory",
+#         default="articles",
+#         show_default=True,
+#         callback=lambda ctx, param, value: FileArticleStoreFactory.config.update({'output_dir': value})
+#       ),
+#       click.Option(
+#         param_decls=["--file-store-log-level"],
+#         help="File store logging level",
+#         default="INFO",
+#         show_default=True,
+#         callback=lambda ctx, param, value: FileArticleStoreFactory.config.update({'log_level': logging._nameToLevel[value]})
+#       )
+#     ]
+
+  # @staticmethod
+  # def create() -> FileArticleStore:
+  #   return FileArticleStore(
+  #     FileArticleStoreFactory.config['output_dir'],
+  #     FileArticleStoreFactory.config['log_level'],
+  #   )
+
+class FileArticleStoreFactory(ClickCliAware):
+
+  config = {}
+
+  @staticmethod
+  def register_cli_options(**kwargs) -> list[click.Option]:
+    return [
+      click.Option(
+        param_decls=["--file-store-output-dir"],
+        help="File store output directory",
+        default="articles",
+        envvar="FILE_STORE_OUTPUT_DIR",
+        show_default=True,
+        show_envvar=True,
+        callback=lambda ctx, param, value: FileArticleStoreFactory.config.update({'output_dir': value})
+      ),
+    ]
+
+  @staticmethod
+  def create() -> FileArticleStore:
+
+    config = FileArticleStoreFactory.config
+
+    return FileArticleStore(
+      config["output_dir"],
+    )     
+
+# class FileArticleStoreFactory:
+
+#   @staticmethod
+#   def create() -> FileArticleStore:
+
+#     output_dir = os.getenv("FILE_STORE_OUTPUT_DIR", "articles")
+#     log_level = os.getenv("FILE_STORE_LOG_LEVEL", "INFO")
+#     log_level = logging._nameToLevel[log_level]
+
+#     logging.info(f"using article store with output directory {output_dir}")
+
+#     return FileArticleStore(output_dir, log_level)

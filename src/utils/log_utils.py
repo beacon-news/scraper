@@ -67,6 +67,9 @@ class JsonFormatter(logging.Formatter):
       "msg": record.msg, 
     }
 
+    if record.exc_info:
+      msg_dict["exc_info"] = record.exc_info
+
     # add arguments from 'args'
     # e.g. log.info("something", {"foo": "bar"})
     # args = {"foo": "bar"}

@@ -4,6 +4,10 @@ from pathlib import Path
 from article_cache import ArticleCache
 from utils import log_utils
 import logging
+import os
+import click
+from cli_aware import ClickCliAware
+
 
 class FileArticleCache(ArticleCache):
 
@@ -15,8 +19,8 @@ class FileArticleCache(ArticleCache):
       level=level
     )
 
-  def __init__(self, cache_file_path: str):
-    self.configure_logging(logging.INFO)
+  def __init__(self, cache_file_path: str, log_level: int = logging.INFO):
+    self.configure_logging(log_level)
 
     self.__cache_file_path = cache_file_path
     self.__cache = {} 
@@ -102,5 +106,43 @@ class FileArticleCache(ArticleCache):
     if article_url in self.__cache:
       del self.__cache[article_url]
       self.__recreate_cache()
-      
+ 
+
+class FileArticleCacheFactory(ClickCliAware):
+
+  config = {}
+
+  @staticmethod
+  def register_cli_options(**kwargs) -> list[click.Option]:
+    return [
+      click.Option(
+        param_decls=["--file-cache-path"],
+        help="File cache path",
+        default="cache",
+        envvar="FILE_CACHE_PATH",
+        show_default=True,
+        show_envvar=True,
+        callback=lambda ctx, param, value: FileArticleCacheFactory.config.update({'path': value})
+      ),
+    ]
+
+  @staticmethod
+  def create() -> FileArticleCache:
+
+    config = FileArticleCacheFactory.config
+
+    return FileArticleCache(
+      config["path"],
+    )     
     
+# class FileArticleCacheFactory:
+
+#   @staticmethod
+#   def create() -> ArticleCache:
+#     path = os.getenv("FILE_CACHE_PATH", "cache")
+#     log_level = os.getenv("FILE_CACHE_LOG_LEVEL", "INFO")
+#     log_level = logging._nameToLevel[log_level]
+
+#     logging.info(f"using article cache with path {path}")
+
+#     return FileArticleCache(path, log_level)

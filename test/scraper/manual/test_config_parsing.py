@@ -107,7 +107,7 @@ if __name__ == "__main__":
     }
   """
 
-  c = ConfigFactory.fromJsonString(c3)
+  c = ConfigFactory.from_json_str(c3)
 
   def walk_selectors_rec(selector: ComponentSelector, indent: int):
 

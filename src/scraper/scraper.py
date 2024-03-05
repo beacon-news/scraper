@@ -19,26 +19,34 @@ class ScrapeOptions:
       ttl: timedelta = timedelta(weeks=1),
       article_cache: ArticleCache = NoOpArticleCache(),
       article_store: ArticleStore = NoOpArticleStore(),
-  ):
-    self.article_limit = article_limit
+      log_level: int = logging.INFO,
+  ): 
+    if article_limit is None:
+      self.article_limit = float("inf")
+    else:
+      self.article_limit = article_limit
+
     self.ttl = ttl
     self.article_cache = article_cache
     self.article_store = article_store
+    self.log_level = log_level
 
 class Scraper:
 
-  def __init__(self, loglevel: int = logging.INFO):
+  def __init_logging(self, log_level: int):
     self.log = log_utils.create_console_logger(
       name=self.__class__.__name__,
-      level=loglevel,
+      level=log_level
     )
-    set_log_levels(loglevel)
+    set_log_levels(log_level)
 
   def scrape_articles(
       self, 
       config: Config, 
       scrape_options: ScrapeOptions,
   ) -> None:
+
+    self.__init_logging(scrape_options.log_level)
 
     scrape_config_to_article_urls: dict[ScrapeConfig, list[str]] = {}
     for scrape_config in config.scrape_configs:
@@ -74,7 +82,8 @@ class Scraper:
 
         # TODO: call an interface which stores the results
         try:
-          scrape_options.article_store.store(article_url, article_result)
+          if article_result is not None:
+            scrape_options.article_store.store(article_url, article_result)
         except Exception as e:
           self.log.exception(f"error while trying to store article {article_url}")
 
@@ -148,7 +157,7 @@ class Scraper:
             return list(scraped_urls)
     
       except Exception as e:
-        self.log.exception(f"error while finding article urls for {url}") 
+        self.log.exception(f"error while finding article urls for {url}, error: {e}") 
 
     return list(scraped_urls)
 
