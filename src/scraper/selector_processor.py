@@ -386,20 +386,17 @@ class IsoDateParserModifierProcessor:
 
   @staticmethod
   def process(info: str) -> str | None:
-    try:
-      d = parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds)
+    # if we're dealing with a UNIX timestamp
+    if re.match(r'^\d+$', info) and (len(info) == 13 or len(info) == 10):
+
+      # milliseconds are also included, ignore it
+      info = info[:10]
+      d = datetime.fromtimestamp(int(info))
       return d.isoformat()
-    except OverflowError as e:
 
-      # if we're dealing with a UNIX timestamp
-      if str(e).find('signed integer is greater than maximum') != -1 and re.match(r'^\d+$', info):
-
-        # milliseconds are also included, ignore it
-        if len(info) == 13:
-          info = info[:10]
-        
-        d = datetime.fromtimestamp(int(info))
-        return d.isoformat()
+    # try to parse it flexibly
+    d = parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds)
+    return d.isoformat()
     
 
 class RegexModifierProcessor:
