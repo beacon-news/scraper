@@ -499,12 +499,13 @@ class TestProcessSelector:
         <p id="2">2024-02-13T16:17:10.000Z</p>                                <!-- bbc news -->
         <p id="3">2024-02-13T12:47:48+00:00</p>                               <!-- bbc news (sports) --> 
         <p id="4">Updated\n        11:22 AM EST, Tue February 13, 2024</p>    <!-- cnn -->
-        <p id="5">Updated 4:04 PM GMT+2, February 13, 2024</p>                <!-- ap news -->
+        <p id="5">Updated 4:04 PM GMT+2, February 13, 2024</p>                <!-- ap news - JavaScript generated... -->
+        <p id="6">1709742104000</p>                                           <!-- ap news, UNIX timestamp with millis-->
+        <p id="7">1709742104</p>                                              <!-- ap news, UNIX timestamp -->
       </html>
       """,
       {
         "key": "dates",
-        "include_self": True,
         "children": [
           {
             "key": "1",
@@ -565,6 +566,24 @@ class TestProcessSelector:
               }
             ]
           },
+          {
+            "key": "6",
+            "selector": "[id='6']",
+            "modifiers": [
+              {
+                "type": "iso_date_parser",
+              }
+            ]
+          },
+          {
+            "key": "7",
+            "selector": "[id='7']",
+            "modifiers": [
+              {
+                "type": "iso_date_parser",
+              }
+            ]
+          },
         ]
       },
       {
@@ -574,6 +593,8 @@ class TestProcessSelector:
           {"3": "2024-02-13T12:47:48+00:00"},
           {"4": "2024-02-13T11:22:00-05:00"},
           {"5": "2024-02-13T16:04:00-02:00"},
+          {"6": "2024-03-06T18:21:44"},
+          {"7": "2024-03-06T18:21:44"},
         ]
       }
     ),

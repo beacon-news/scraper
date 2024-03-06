@@ -2,7 +2,6 @@ from article_cache.article_cache import ArticleCache
 from article_cache.file_cache import FileArticleCache, FileArticleCacheFactory
 from article_cache.noop_cache import NoOpArticleCache, NoOpArticleCacheFactory
 from article_cache.redis_cache import RedisArticleCache, RedisArticleCacheFactory
-import os
 import click
 from cli_aware import ClickCliAware
 
@@ -12,10 +11,6 @@ cache_factories = {
   "file": FileArticleCacheFactory,
   "redis": RedisArticleCacheFactory
 }
-
-# def create_article_cache() -> ArticleCache:
-#   cache_type = os.getenv("CACHE_TYPE", "noop")
-#   return cache_factories[cache_type].create()
 
 class ArticleCacheFactory(ClickCliAware):
 

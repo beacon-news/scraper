@@ -2,7 +2,6 @@ from article_store.article_store import ArticleStore
 from article_store.file_store import FileArticleStore, FileArticleStoreFactory
 from article_store.noop_store import NoOpArticleStore, NoOpArticleStoreFactory
 from article_store.redis_stream_store import RedisStreamArticleStore, RedisStreamArticleStoreFactory
-import os
 import click
 from cli_aware import ClickCliAware
 
@@ -11,11 +10,6 @@ store_factories = {
   "file": FileArticleStoreFactory,
   "redis_streams": RedisStreamArticleStoreFactory
 }
-
-# def create_article_store() -> ArticleStore:
-#   store_type = os.getenv("STORE_TYPE", "noop")
-#   return store_factories[store_type].create()
-
 
 class ArticleStoreFactory(ClickCliAware):
 

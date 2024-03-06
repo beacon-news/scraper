@@ -1,6 +1,7 @@
 import logging
 import datetime
 import json
+import traceback
 
 LOGRECORD_DEFAULT_ATTRIBUTES = [
   "name",
@@ -68,7 +69,13 @@ class JsonFormatter(logging.Formatter):
     }
 
     if record.exc_info:
-      msg_dict["exc_info"] = record.exc_info
+      (exc_type, exc, trace) = record.exc_info
+      msg_dict["error"] = {
+        "type": str(exc_type),
+        "message": str(exc),
+        "trace": traceback.format_exc(limit=5),
+      }
+      # msg_dict["exc_info"] = str(record.exc_info)
 
     # add arguments from 'args'
     # e.g. log.info("something", {"foo": "bar"})

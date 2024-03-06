@@ -101,14 +101,9 @@ class Scraper:
         self.log.info(f"finished scraping {article_url}")
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
-    if not self._is_url_valid(article_url):
-      self.log.warning(f"url {article_url} is not valid, not scraping it")
-      return None
-
     try:
-      page = urlopen(article_url)
+      page = urlopen(article_url, timeout=15)
       html = page.read().decode("utf-8")
-
       self.log.debug("trying to select article components")
       return SelectorProcessor.process_html(selector, html)
     except Exception as e:
@@ -134,18 +129,27 @@ class Scraper:
       # TODO: catch errors here
       try:
 
-        page = urlopen(url)
+        page = urlopen(url, timeout=15)
         html = page.read().decode("utf-8")
 
         # select all urls using the specified selectors
         url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
+        if url_dict is None:
+          self.log.warning(f"url_selectors found no urls for {url}")
+          continue
+
         url_list = self._flatten_dict_to_list(url_dict)
 
         self.log.debug(f"using article limit {scrape_options.article_limit}")
         
         for scraped_url in url_list:
-          absolute_url = self._create_absolute_link(scraped_url, url)
 
+          absolute_url = self._create_absolute_link(scraped_url, url)
+          if not self._is_url_valid(absolute_url):
+            self.log.warning(f"created absolute url {absolute_url} is invalid, skipping")
+            continue
+
+          # check the cache
           if scrape_options.article_cache.contains(absolute_url):
             self.log.info(f"url {absolute_url} already in cache, skipping")
             continue
@@ -154,6 +158,7 @@ class Scraper:
           scraped_urls.add(absolute_url)
 
           if len(scraped_urls) >= scrape_options.article_limit:
+            self.log.debug(f"reached article limit {scrape_options.article_limit} when finding urls")
             return list(scraped_urls)
     
       except Exception as e:
@@ -185,7 +190,7 @@ class Scraper:
 
     if scheme != "http" and scheme != "https" and path:
       self.log.debug(f"url {absolute_or_relative_url} not matching scheme http or https, joining path to root url")
-      return urljoin(base_url, link_parsed.path)
+      return urljoin(base_url, path)
 
     return absolute_or_relative_url
 

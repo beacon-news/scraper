@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup, Tag
 import utils.log_utils as log_utils
 import logging
 from dateutil.parser import parse
+from datetime import datetime
 import re
 
   
@@ -41,7 +42,7 @@ class SelectorProcessor:
   def process_html(config: ComponentSelectorConfig, html: str) -> dict | None:
     root = BeautifulSoup(html, "html.parser").select_one("html")
     if root is None:
-      SelectorProcessor.log.error("no root 'html' element found")
+      SelectorProcessor.log.error(f"no root 'html' element found when processing selector: {config.key}")
       return None
     return SelectorProcessor.process(config, root)
 
@@ -159,7 +160,7 @@ class MultiChildSelectorProcessor:
     )
 
   @staticmethod
-  def select_one(config: ComponentSelectorConfig, element: Tag) -> dict | None:
+  def select_one(config: ComponentSelectorConfig, element: Tag) -> list | None:
     MultiChildSelectorProcessor.log.debug(f"selecting one for key: {config.key}, css_selector: {config.css_selector}")
 
     elem = element.select_one(config.css_selector)
@@ -214,7 +215,7 @@ class LeafSelectorProcessor:
     )
 
   @staticmethod
-  def select_one(config: ComponentSelectorConfig, element: Tag) -> dict | None:
+  def select_one(config: ComponentSelectorConfig, element: Tag) -> str | None:
     LeafSelectorProcessor.log.debug(f"selecting one for key: {config.key}, css_selector: {config.css_selector}")
 
     # select the first match from the html
@@ -247,7 +248,6 @@ class LeafSelectorProcessor:
     results = []
     for elem in elements: 
       info = ExtractorProcessor.process(config.leaf_selector_config.extract, elem)
-
       if info is None:
         continue
 
@@ -305,9 +305,9 @@ class ExtractorProcessor:
       elif config.type == ExtractConfig.prop_type_value_attribute:
         info = AttributeExtractorProcessor.process(config, element)
     except Exception as e:
-      ExtractorProcessor.log.error(f"failed to process extractor: {config.type}", e)
+      ExtractorProcessor.log.exception(f"failed to process extractor: {config.type}, error: {e}")
       return None
-    
+
     if info is None:
       return None
     
@@ -336,19 +336,30 @@ class AttributeExtractorProcessor:
 
 class ModifierProcessor:
 
-  @staticmethod
-  def process(config: ModifierConfig, info: str) -> str | None:
-    if config.type == ModifierConfig.prop_type_iso_date_parser:
-      return IsoDateParserModifierProcessor.process(info)
-    if config.type == ModifierConfig.prop_type_regex:
-      return RegexModifierProcessor.process(config, info)
-  
-class IsoDateParserModifierProcessor:
-
   log = log_utils.create_console_logger(
-    name="IsoDateParserModifierProcessor",
+    name="ModifierProcessor",
     level=logging.INFO
   )
+
+  @classmethod
+  def set_log_level(cls, level: int):
+    cls.log = log_utils.create_console_logger(
+      name="ModifierProcessor",
+      level=level
+    )
+
+  @staticmethod
+  def process(config: ModifierConfig, info: str) -> str | None:
+    try:
+      if config.type == ModifierConfig.prop_type_iso_date_parser:
+        return IsoDateParserModifierProcessor.process(info)
+      if config.type == ModifierConfig.prop_type_regex:
+        return RegexModifierProcessor.process(config, info)
+    except Exception as e:
+      ModifierProcessor.log.exception(f"failed to process modifier: {config.type} on {info}, error: {e}")
+      return None
+  
+class IsoDateParserModifierProcessor:
 
   # additional timezone offsets
   tz_seconds = {
@@ -374,12 +385,22 @@ class IsoDateParserModifierProcessor:
   }
 
   @staticmethod
-  def process(info: str) -> str:
+  def process(info: str) -> str | None:
     try:
-      return parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds).isoformat()
-    except Exception as e:
-      IsoDateParserModifierProcessor.log.exception(f"failed to parse iso date: {info}, error: {e}")
-      return None
+      d = parse(info, fuzzy=True, tzinfos=IsoDateParserModifierProcessor.tz_seconds)
+      return d.isoformat()
+    except OverflowError as e:
+
+      # if we're dealing with a UNIX timestamp
+      if str(e).find('signed integer is greater than maximum') != -1 and re.match(r'^\d+$', info):
+
+        # milliseconds are also included, ignore it
+        if len(info) == 13:
+          info = info[:10]
+        
+        d = datetime.fromtimestamp(int(info))
+        return d.isoformat()
+    
 
 class RegexModifierProcessor:
 
@@ -397,7 +418,7 @@ class RegexModifierProcessor:
       try:
         match = re.search(pattern, info)
       except Exception as e:
-        RegexModifierProcessor.log.error(f"failed to search regex: {pattern}, info {info}, error: {e}")
+        RegexModifierProcessor.log.exception(f"failed to search regex: {pattern}, info {info}, error: {e}")
         continue
 
       if match:
@@ -410,7 +431,7 @@ class RegexModifierProcessor:
           try:
             return match.group(0)
           except Exception as e:
-            RegexModifierProcessor.log.error(f"failed to get first match from regex: {pattern}, info {info}, error: {e}")
+            RegexModifierProcessor.log.exception(f"failed to get first match from regex: {pattern}, info {info}, error: {e}")
             return None
         
         else:
