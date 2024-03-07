@@ -268,7 +268,7 @@ class LeafSelectorProcessor:
       try:
         info = ModifierProcessor.process(m, info)
       except Exception as e:
-        LeafSelectorProcessor.log.exception(f"failed to process modifier: {m.type}, info {info}, error: {e}")
+        LeafSelectorProcessor.log.exception(f"failed to process modifier: {m.type}, info {info}")
         return None
 
       if info is None:
@@ -305,7 +305,7 @@ class ExtractorProcessor:
       elif config.type == ExtractConfig.prop_type_value_attribute:
         info = AttributeExtractorProcessor.process(config, element)
     except Exception as e:
-      ExtractorProcessor.log.exception(f"failed to process extractor: {config.type}, error: {e}")
+      ExtractorProcessor.log.exception(f"failed to process extractor: {config.type}")
       return None
 
     if info is None:
@@ -356,7 +356,7 @@ class ModifierProcessor:
       if config.type == ModifierConfig.prop_type_regex:
         return RegexModifierProcessor.process(config, info)
     except Exception as e:
-      ModifierProcessor.log.exception(f"failed to process modifier: {config.type} on {info}, error: {e}")
+      ModifierProcessor.log.exception(f"failed to process modifier: {config.type} on {info}")
       return None
   
 class IsoDateParserModifierProcessor:
@@ -415,7 +415,7 @@ class RegexModifierProcessor:
       try:
         match = re.search(pattern, info)
       except Exception as e:
-        RegexModifierProcessor.log.exception(f"failed to search regex: {pattern}, info {info}, error: {e}")
+        RegexModifierProcessor.log.exception(f"failed to search regex: {pattern}, info {info}")
         continue
 
       if match:
@@ -428,7 +428,7 @@ class RegexModifierProcessor:
           try:
             return match.group(0)
           except Exception as e:
-            RegexModifierProcessor.log.exception(f"failed to get first match from regex: {pattern}, info {info}, error: {e}")
+            RegexModifierProcessor.log.exception(f"failed to get first match from regex: {pattern}, info {info}")
             return None
         
         else:

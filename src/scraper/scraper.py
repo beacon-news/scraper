@@ -1,15 +1,16 @@
-from urllib.request import urlopen
+from urllib import request
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 import logging
 from datetime import datetime
+from datetime import timedelta
 
 from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig
-import utils.log_utils as log_utils
+from utils import log_utils
+from utils import http_utils
 from scraper.selector_processor import SelectorProcessor, set_log_levels
 from article_cache import ArticleCache, NoOpArticleCache
 from article_store import ArticleStore, NoOpArticleStore
-from datetime import timedelta
 
 class ScrapeOptions:
 
@@ -80,33 +81,22 @@ class Scraper:
           "components": scrape_result
         }
 
-        # TODO: call an interface which stores the results
         try:
           if article_result is not None:
             scrape_options.article_store.store(article_url, article_result)
         except Exception as e:
           self.log.exception(f"error while trying to store article {article_url}")
 
-        # parsed_url = urlparse(article_url)
-        # article_file = f"{parsed_url.netloc}{parsed_url.path.replace('/','_')}.json"
-
-        # dir = Path(scrape_options.output_dir)
-        # dir.mkdir(parents=True, exist_ok=True)
-
-        # article_path = str(dir.joinpath(Path(article_file)))
-
-        # with open(article_path, "w") as f:
-        #   json.dump(article_result, f)
-
         self.log.info(f"finished scraping {article_url}")
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     try:
-      page = urlopen(article_url, timeout=15)
+      req = http_utils.create_request(article_url)
+      page = request.urlopen(req, timeout=15)
       html = page.read().decode("utf-8")
       self.log.debug("trying to select article components")
       return SelectorProcessor.process_html(selector, html)
-    except Exception as e:
+    except Exception:
       self.log.exception(f"error while trying to scrape {article_url}")
       return None
 
@@ -128,8 +118,8 @@ class Scraper:
 
       # TODO: catch errors here
       try:
-
-        page = urlopen(url, timeout=15)
+        req = http_utils.create_request(url)
+        page = request.urlopen(req, timeout=15)
         html = page.read().decode("utf-8")
 
         # select all urls using the specified selectors
@@ -162,7 +152,7 @@ class Scraper:
             return list(scraped_urls)
     
       except Exception as e:
-        self.log.exception(f"error while finding article urls for {url}, error: {e}") 
+        self.log.exception(f"error while finding article urls for {url}") 
 
     return list(scraped_urls)
 
