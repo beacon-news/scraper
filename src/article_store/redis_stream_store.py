@@ -20,10 +20,6 @@ class RedisStreamArticleStore(ArticleStore):
 
   def __init__(self, redis_host: str, redis_port: int, stream_name: str, log_level: int = logging.INFO):
     self.configure_logging(log_level)
-
-    # host = os.getenv("STORE_REDIS_HOST", "localhost")
-    # port = int(os.getenv("STORE_REDIS_PORT", 6379))
-    # self.stream_name = os.getenv("STORE_REDIS_STREAM_NAME", "scraped_articles")
     self.stream_name = stream_name
 
     try:
