@@ -9,7 +9,6 @@ from article_cache import cache_factories
 
 from article_cache import ArticleCacheFactory
 from article_store import ArticleStoreFactory
-import sys
 
 
 import click
@@ -167,14 +166,13 @@ def run(**kwargs):
     article_limit=kwargs['limit'],
     log_level=kwargs['log_level'],
     article_cache=ArticleCacheFactory.create(),
-    article_store=ArticleStoreFactory.create(),
+    article_stores=ArticleStoreFactory.create(),
   )
   scraper = Scraper()
   scraper.scrape_articles(config, options)
 
 
 if __name__ == "__main__":
-  # cli()
 
   opts = [
     click.Option(

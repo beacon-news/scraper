@@ -21,11 +21,12 @@ class ArticleStoreFactory(ClickCliAware):
     store_opt = click.Option(
       param_decls=["--store"],
       type=click.Choice(store_factories.keys()),
-      default="noop",
+      multiple=True,
+      default=["noop"],
       show_default=True,
       envvar="STORE_TYPE",
       show_envvar=True,
-      callback=lambda ctx, param, value: ArticleStoreFactory.config.update({'type': value})
+      callback=lambda ctx, param, values: ArticleStoreFactory.config.update({'types': values})
     )
     opts.append(store_opt)
     for factory in store_factories.values():
@@ -33,5 +34,9 @@ class ArticleStoreFactory(ClickCliAware):
     return opts
 
   @staticmethod
-  def create() -> ArticleStore:
-    return store_factories[ArticleStoreFactory.config['type']].create()
+  def create() -> list[ArticleStore]:
+    l = []
+    for f in ArticleStoreFactory.config['types']:
+      l.append(store_factories[f].create())
+
+    return l

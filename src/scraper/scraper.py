@@ -19,7 +19,7 @@ class ScrapeOptions:
       article_limit: int | float = float("inf"),
       ttl: timedelta = timedelta(weeks=1),
       article_cache: ArticleCache = NoOpArticleCache(),
-      article_store: ArticleStore = NoOpArticleStore(),
+      article_stores: ArticleStore = [NoOpArticleStore()],
       log_level: int = logging.INFO,
   ): 
     if article_limit is None:
@@ -29,7 +29,7 @@ class ScrapeOptions:
 
     self.ttl = ttl
     self.article_cache = article_cache
-    self.article_store = article_store
+    self.article_stores = article_stores
     self.log_level = log_level
 
 class Scraper:
@@ -81,11 +81,14 @@ class Scraper:
           "components": scrape_result
         }
 
-        try:
-          if article_result is not None:
-            scrape_options.article_store.store(article_url, article_result)
-        except Exception as e:
-          self.log.exception(f"error while trying to store article {article_url}")
+        if article_result is not None:
+          # store in every article store
+          for s in scrape_options.article_stores:
+            try: 
+              s.store(article_url, article_result)
+            except Exception:
+              self.log.exception(f"error while trying to store article {article_url}")
+              continue
 
         self.log.info(f"finished scraping {article_url}")
     
