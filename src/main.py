@@ -196,7 +196,7 @@ if __name__ == "__main__":
       show_default=True,
       envvar="SCRAPER_LOG_LEVEL",
       show_envvar=True,
-      help="Limits the number of articles to scrape. By default all articles will be scraped.",
+      help="Sets the log level.",
     ),
   ] 
 

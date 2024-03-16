@@ -1,14 +1,16 @@
 from article_store.article_store import ArticleStore
-from article_store.file_store import FileArticleStore, FileArticleStoreFactory
-from article_store.noop_store import NoOpArticleStore, NoOpArticleStoreFactory
-from article_store.redis_stream_store import RedisStreamArticleStore, RedisStreamArticleStoreFactory
+from article_store.file_store import *
+from article_store.noop_store import *
+from article_store.redis_stream_store import * 
+from article_store.mongodb_store import *
 import click
 from cli_aware import ClickCliAware
 
 store_factories = {
   "noop": NoOpArticleStoreFactory,
   "file": FileArticleStoreFactory,
-  "redis_streams": RedisStreamArticleStoreFactory
+  "redis_streams": RedisStreamArticleStoreFactory,
+  "mongodb": MongoDBArticleStoreFactory,
 }
 
 class ArticleStoreFactory(ClickCliAware):
