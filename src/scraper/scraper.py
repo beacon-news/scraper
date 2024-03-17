@@ -1,3 +1,4 @@
+import uuid
 from urllib import request
 from urllib.parse import urlparse
 from urllib.parse import urljoin
@@ -76,6 +77,7 @@ class Scraper:
         
         # add other keys and the result
         article_result |= {
+          "id":  uuid.uuid4().hex,
           "url": article_url,
           "scrape_time": datetime.now().isoformat(),
           "components": scrape_result
