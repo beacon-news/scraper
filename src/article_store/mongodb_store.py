@@ -49,7 +49,10 @@ class MongoDBArticleStore(ArticleStore):
     if article is None:
       return False
     try:      
-      id = self.__col.insert_one(article)
+      # set the MongoDB _id
+      doc = article.copy()
+      doc["_id"] = doc["id"]
+      id = self.__col.insert_one(doc)
       self.log.debug(f"inserted article into collection {self.collection_name}, id {id}")
       return True
     except Exception as e:
