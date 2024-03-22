@@ -172,13 +172,115 @@ def run(**kwargs):
   scraper.scrape_articles(config, options)
 
 
+import multiprocessing as mp
+from utils import log_utils
+
+log = log_utils.create_console_logger("main")
+
+def run_proc(**kwargs):
+  proc_limit = 100
+  config_paths = kwargs['config']
+  if len(config_paths) > proc_limit:
+    raise Exception(f"max number of config files and processes is {proc_limit}")
+
+  options_list = []
+  config_list = []
+  for config_path in config_paths:
+
+    if config_path.endswith(".json"):
+      config = ConfigFactory.from_json_file(config_path)
+    elif config_path.endswith(".yaml"):
+      config = ConfigFactory.from_yaml_file(config_path)
+    else:
+      raise Exception(f"config file must be json or yaml, provided: '{config_path}'")
+    
+    config_list.append(config)
+    
+    options = ScrapeOptions(
+      article_limit=kwargs['limit'],
+      log_level=kwargs['log_level'],
+      article_cache=ArticleCacheFactory.create(),
+      article_stores=ArticleStoreFactory.create(),
+    )
+    options_list.append(options)
+  
+  # start processes
+  proc = [] 
+  q = mp.Queue(maxsize=proc_limit)
+  for i in range(len(options_list)):
+    options = options_list[i]
+    config = config_list[i]
+    scraper = Scraper(id=i)
+    name = f"Scraper-{i}"
+    p = mp.Process(name=name, target=scraper.scrape_articles, args=(config, options, q))
+    p.start()
+    proc.append(p)
+    log.info(f"started process {name} with config {config_paths[i]}")
+
+  # wait for responses
+  scraped_ids = []
+  for i in range(len(proc)):
+    # TODO: could hang indefinitely
+    scraped_ids.extend(q.get())
+
+  # wait for processes
+  for i in range(len(proc)):
+    p.join()
+    log.info(f"process {name} with config {config_paths[i]} finished")
+  log.info(f"all scraper processes have finished")
+
+  log.info(f"scraped ids: {scraped_ids}")
+
+
 if __name__ == "__main__":
 
+  # # single process
+  # opts = [
+  #   click.Option(
+  #     param_decls=["-c", "--config"],
+  #     required=True,
+  #     envvar="SCRAPER_CONFIG_FILE",
+  #     show_envvar=True,
+  #     help="Path to the json or yaml config file.",
+  #   ),
+  #   click.Option(
+  #     param_decls=["-l", "--limit"],
+  #     type=click.INT,
+  #     envvar="SCRAPER_ARTICLE_LIMIT",
+  #     show_envvar=True,
+  #     help="Limits the number of articles to scrape. By default all articles will be scraped.",
+  #   ),
+  #   click.Option(
+  #     param_decls=["--log-level"],
+  #     type=click.Choice([l for l in logging._nameToLevel.keys()]),
+  #     default="INFO",
+  #     show_default=True,
+  #     envvar="SCRAPER_LOG_LEVEL",
+  #     show_envvar=True,
+  #     help="Sets the log level.",
+  #   ),
+  # ] 
+
+  # # register any other cli options defined by the plugins, also configure the plugins
+  # opts.extend(ArticleCacheFactory.register_cli_options())
+  # opts.extend(ArticleStoreFactory.register_cli_options())
+
+  # # create and run the command by using a callback
+  # cmd = click.Command(
+  #   "",
+  #   params=opts,
+  #   callback=run
+  # )
+
+  # cmd()
+
+  # multiple processes
   opts = [
     click.Option(
       param_decls=["-c", "--config"],
       required=True,
       envvar="SCRAPER_CONFIG_FILE",
+      multiple=True,
       show_envvar=True,
       help="Path to the json or yaml config file.",
     ),
@@ -208,7 +310,7 @@ if __name__ == "__main__":
   cmd = click.Command(
     "",
     params=opts,
-    callback=run
+    callback=run_proc
   )
 
   cmd()

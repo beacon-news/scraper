@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 import logging
 from datetime import datetime
 from datetime import timedelta
+from multiprocessing import Queue
 
 from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig
 from utils import log_utils
@@ -36,16 +37,23 @@ class ScrapeOptions:
 class Scraper:
 
   def __init_logging(self, log_level: int):
+    name = self.__class__.__name__
+    if self.id is not None:
+      name = name + '-' + self.id
     self.log = log_utils.create_console_logger(
-      name=self.__class__.__name__,
+      name=name,
       level=log_level
     )
     set_log_levels(log_level)
+  
+  def __init__(self, id: str):
+    self.id = str(id) # just to make sure
 
   def scrape_articles(
       self, 
       config: Config, 
       scrape_options: ScrapeOptions,
+      queue: Queue,
   ) -> None:
 
     self.__init_logging(scrape_options.log_level)
@@ -58,7 +66,7 @@ class Scraper:
       )
 
     # at this point all urls are valid and can be scraped
-
+    scraped_ids = []
     for scrape_config, urls in scrape_config_to_article_urls.items():
       for article_url in urls:
         self.log.info(f"trying to scrape {article_url}")
@@ -76,8 +84,9 @@ class Scraper:
           }
         
         # add other keys and the result
+        article_id = uuid.uuid4().hex
         article_result |= {
-          "id":  uuid.uuid4().hex,
+          "id":  article_id,
           "url": article_url,
           "scrape_time": datetime.now().isoformat(),
           "components": scrape_result
@@ -88,11 +97,17 @@ class Scraper:
           for s in scrape_options.article_stores:
             try: 
               s.store(article_url, article_result)
+              scraped_ids.append(article_id)
             except Exception:
               self.log.exception(f"error while trying to store article {article_url}")
               continue
 
-        self.log.info(f"finished scraping {article_url}")
+        self.log.info(f"finished scraping {article_url}")  
+    
+    # return the ids to parent process if there is one
+    if queue is not None:
+      # TODO: could hang indefinitely
+      queue.put(scraped_ids)
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     try:
@@ -121,7 +136,6 @@ class Scraper:
         self.log.warning(f"url {url} is invalid, not finding any links for it")
         continue
 
-      # TODO: catch errors here
       try:
         req = http_utils.create_request(url)
         page = request.urlopen(req, timeout=15)
