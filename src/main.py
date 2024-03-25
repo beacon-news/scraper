@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 from scraper.config import ConfigFactory
 from scraper.scraper import ScrapeOptions, Scraper
 import logging
-from article_cache import cache_factories
+# from article_cache import cache_factories
+from scraper_manager import ScraperManager
 # from article_cache import NoOpArticleCache, FileArticleCache, RedisArticleCache
 # from article_store import NoOpArticleStore, FileArticleStore, RedisStreamArticleStore
 
@@ -154,14 +155,7 @@ import click
 
 # this will be run when invoking the command
 def run(**kwargs):
-  config_path = kwargs['config']
-  if config_path.endswith(".json"):
-    config = ConfigFactory.from_json_file(config_path)
-  elif config_path.endswith(".yaml"):
-    config = ConfigFactory.from_yaml_file(config_path)
-  else:
-    raise Exception("config file must be json or yaml")
-  
+  config = ConfigFactory.from_file(kwargs['config'])
   options = ScrapeOptions(
     article_limit=kwargs['limit'],
     log_level=kwargs['log_level'],
@@ -178,22 +172,14 @@ from utils import log_utils
 log = log_utils.create_console_logger("main")
 
 def run_proc(**kwargs):
-  proc_limit = 100
+  
+  # create configs and scrape options
   config_paths = kwargs['config']
-  if len(config_paths) > proc_limit:
-    raise Exception(f"max number of config files and processes is {proc_limit}")
-
   options_list = []
   config_list = []
   for config_path in config_paths:
 
-    if config_path.endswith(".json"):
-      config = ConfigFactory.from_json_file(config_path)
-    elif config_path.endswith(".yaml"):
-      config = ConfigFactory.from_yaml_file(config_path)
-    else:
-      raise Exception(f"config file must be json or yaml, provided: '{config_path}'")
-    
+    config = ConfigFactory.from_file(config_path)
     config_list.append(config)
     
     options = ScrapeOptions(
@@ -204,32 +190,8 @@ def run_proc(**kwargs):
     )
     options_list.append(options)
   
-  # start processes
-  proc = [] 
-  q = mp.Queue(maxsize=proc_limit)
-  for i in range(len(options_list)):
-    options = options_list[i]
-    config = config_list[i]
-    scraper = Scraper(id=i)
-    name = f"Scraper-{i}"
-    p = mp.Process(name=name, target=scraper.scrape_articles, args=(config, options, q))
-    p.start()
-    proc.append(p)
-    log.info(f"started process {name} with config {config_paths[i]}")
-
-  # wait for responses
-  scraped_ids = []
-  for i in range(len(proc)):
-    # TODO: could hang indefinitely
-    scraped_ids.extend(q.get())
-
-  # wait for processes
-  for i in range(len(proc)):
-    p.join()
-    log.info(f"process {name} with config {config_paths[i]} finished")
-  log.info(f"all scraper processes have finished")
-
-  log.info(f"scraped ids: {scraped_ids}")
+  ScraperManager().scrape(config_list, options_list)
+  
 
 
 if __name__ == "__main__":

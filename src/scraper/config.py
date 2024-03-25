@@ -50,7 +50,10 @@ class Config:
   prop_version = "version"
   prop_pages = "pages"
 
-  def __init__(self, config: dict):
+  def __init__(self, config: dict, file_path: str = None):
+
+    # set the path to the config file
+    self.file_path = file_path
 
     # only support version 1.0.0 for now 
     version = config.get(Config.prop_version)
@@ -68,13 +71,22 @@ class Config:
 class ConfigFactory:
 
   @staticmethod
+  def from_file(config_path: str) -> Config:
+    if config_path.endswith(".json"):
+      return ConfigFactory.from_json_file(config_path)
+    elif config_path.endswith(".yaml"):
+      return ConfigFactory.from_yaml_file(config_path)
+    else:
+      raise Exception(f"config file must be json or yaml, provided: '{config_path}'")
+
+  @staticmethod
   def from_json_str(config_json_string: str) -> Config:
     return Config(json.loads(config_json_string))
   
   @staticmethod
   def from_json_file(path: str) -> Config:
     with open(path) as f:
-      return Config(json.load(f))
+      return Config(json.load(f), path)
   
   @staticmethod
   def from_yaml_str(config_yaml_string: str) -> Config:
@@ -83,7 +95,7 @@ class ConfigFactory:
   @staticmethod
   def from_yaml_file(path: str) -> Config:
     with open(path) as f:
-      return Config(yaml.safe_load(f))
+      return Config(yaml.safe_load(f), path)
   
 
 class ScrapeConfig:

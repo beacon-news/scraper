@@ -66,7 +66,7 @@ class Scraper:
       )
 
     # at this point all urls are valid and can be scraped
-    scraped_ids = []
+    scraped_meta = []
     for scrape_config, urls in scrape_config_to_article_urls.items():
       for article_url in urls:
         self.log.info(f"trying to scrape {article_url}")
@@ -97,17 +97,23 @@ class Scraper:
           for s in scrape_options.article_stores:
             try: 
               s.store(article_url, article_result)
-              scraped_ids.append(article_id)
+              
+              # TODO: change this dict to be a data class
+              scraped_meta.append({
+                "id": article_id,
+                "url": article_url,
+                "scrape_time": article_result["scrape_time"],
+              })
             except Exception:
               self.log.exception(f"error while trying to store article {article_url}")
               continue
 
-        self.log.info(f"finished scraping {article_url}")  
+        self.log.info(f"finished scraping {article_url}, id {article_id}")  
     
     # return the ids to parent process if there is one
     if queue is not None:
       # TODO: could hang indefinitely
-      queue.put(scraped_ids)
+      queue.put(scraped_meta)
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
     try:

@@ -1,0 +1,1 @@
+from scraper_manager.scraper_manager import ScraperManager
