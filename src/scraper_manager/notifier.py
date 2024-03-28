@@ -11,6 +11,10 @@ class Notifier(ABC):
   def send_done_notification(self, ids: list[str]):
     raise NotImplementedError
 
+class NoOpNotifier(Notifier):
+  def send_done_notification(self, ids: list[str]):
+    print("no-op notifier sending notification")
+
 class RedisStreamsNotifier(Notifier):
 
   def __init__(

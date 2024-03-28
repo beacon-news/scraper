@@ -48,6 +48,16 @@ class Scraper:
   
   def __init__(self, id: str):
     self.id = str(id) # just to make sure
+    self.__init_logging(logging.INFO)
+  
+  def scrape_articles_from_queue(self, input_queue: Queue, output_queue: Queue):
+    self.log.info("listening for work")
+    config, scrape_options = input_queue.get()
+    while config is not None:
+      self.scrape_articles(config, scrape_options, output_queue)
+      self.log.info("listening for work")
+      config, scrape_options = input_queue.get()
+    self.log.info("got None work, exiting")
 
   def scrape_articles(
       self, 
@@ -56,7 +66,7 @@ class Scraper:
       queue: Queue,
   ) -> None:
 
-    self.__init_logging(scrape_options.log_level)
+    self.log.setLevel(scrape_options.log_level)
 
     scrape_config_to_article_urls: dict[ScrapeConfig, list[str]] = {}
     for scrape_config in config.scrape_configs:

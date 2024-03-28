@@ -1,6 +1,6 @@
-from argparse import ArgumentParser
 from scraper.config import ConfigFactory
 from scraper.scraper import ScrapeOptions, Scraper
+from scraper_manager.notifier import *
 import logging
 # from article_cache import cache_factories
 from scraper_manager import ScraperManager
@@ -173,6 +173,7 @@ log = log_utils.create_console_logger("main")
 
 def run_proc(**kwargs):
   
+  proc_count = kwargs['processes']
   # create configs and scrape options
   config_paths = kwargs['config']
   options_list = []
@@ -190,7 +191,9 @@ def run_proc(**kwargs):
     )
     options_list.append(options)
   
-  ScraperManager().scrape(config_list, options_list)
+  # notifier = RedisStreamsNotifier()
+  notifier = None
+  ScraperManager(notifier, proc_count).scrape(config_list, options_list)
   
 
 
@@ -245,6 +248,14 @@ if __name__ == "__main__":
       multiple=True,
       show_envvar=True,
       help="Path to the json or yaml config file.",
+    ),
+    click.Option(
+      param_decls=["-p", "--processes"],
+      type=click.INT,
+      default=1,
+      envvar="SCRAPER_PROCESSES",
+      show_envvar=True,
+      help="Number of scraper processes to start. Upper limit is the number of available cores.",
     ),
     click.Option(
       param_decls=["-l", "--limit"],
