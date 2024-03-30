@@ -7,7 +7,6 @@ from scraper_manager.notifier import *
 
 class ScraperManager:
 
-
   def __init__(self, notifier: Notifier = None, proc_count: int = 1):
     self.log = log_utils.create_console_logger(__name__)
 

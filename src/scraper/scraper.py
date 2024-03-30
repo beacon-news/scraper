@@ -1,4 +1,4 @@
-import uuid
+import hashlib
 from urllib import request
 from urllib.parse import urlparse
 from urllib.parse import urljoin
@@ -94,29 +94,29 @@ class Scraper:
           }
         
         # add other keys and the result
-        article_id = uuid.uuid4().hex
+        # article id is a hash of the url and the content
+        article_id = hashlib.sha1(f"{article_url}-{scrape_result}".encode()).hexdigest() 
         article_result |= {
           "id":  article_id,
           "url": article_url,
           "scrape_time": datetime.now().isoformat(),
-          "components": scrape_result
+          "components": scrape_result,
         }
 
-        if article_result is not None:
-          # store in every article store
-          for s in scrape_options.article_stores:
-            try: 
-              s.store(article_url, article_result)
-              
-              # TODO: change this dict to be a data class
-              scraped_meta.append({
-                "id": article_id,
-                "url": article_url,
-                "scrape_time": article_result["scrape_time"],
-              })
-            except Exception:
-              self.log.exception(f"error while trying to store article {article_url}")
-              continue
+        # store in every article store
+        for s in scrape_options.article_stores:
+          try: 
+            s.store(article_url, article_result)
+            
+            # TODO: change this dict to be a data class
+            scraped_meta.append({
+              "id": article_id,
+              "url": article_url,
+              "scrape_time": article_result["scrape_time"],
+            })
+          except Exception:
+            self.log.exception(f"error while trying to store article {article_url}")
+            continue
 
         self.log.info(f"finished scraping {article_url}, id {article_id}")  
     

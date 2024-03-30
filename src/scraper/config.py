@@ -1,8 +1,8 @@
 import json
 import yaml
 
-# TODO: logging
-# TODO: encourage duck typing (don't check necessarily the types of stuff, check if we're able to use them)
+
+# TODO: use pydantic models instead of implementing the same thing, but worse... 
 class ConfigValidator:
 
   def must_not_be_none(property: str, value):
