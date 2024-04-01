@@ -196,9 +196,7 @@ def run_proc(**kwargs):
   ScraperManager(notifier, proc_count).scrape(config_list, options_list)
   
 
-
-if __name__ == "__main__":
-
+def main():
   # # single process
   # opts = [
   #   click.Option(
@@ -338,3 +336,7 @@ if __name__ == "__main__":
   #   scrape_options=options
   # )
   
+
+
+if __name__ == "__main__":
+  main()
