@@ -7,7 +7,7 @@ from scraper_manager.notifier import *
 
 class ScraperManager:
 
-  def __init__(self, notifier: Notifier = None, proc_count: int = 1):
+  def __init__(self, notifier: Notifier, proc_count: int = 1):
     self.log = log_utils.create_console_logger(__name__)
 
     self.proc_count = proc_count
@@ -16,9 +16,6 @@ class ScraperManager:
       self.log.info(f"limiting number of processes to {self.proc_count} (number of cpu cores)")
 
     self.notifier = notifier
-    if self.notifier is None:
-      self.notifier = NoOpNotifier()
-      self.log.warning("no notifier provided, using no-op notifier")
 
   # TODO: unify config and scrape options
   def scrape(self, configs: list[Config], scrape_options: list[ScrapeOptions]):

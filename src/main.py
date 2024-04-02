@@ -191,8 +191,7 @@ def run_proc(**kwargs):
     )
     options_list.append(options)
   
-  # notifier = RedisStreamsNotifier()
-  notifier = None
+  notifier = NotifierFactory.create()
   ScraperManager(notifier, proc_count).scrape(config_list, options_list)
   
 
@@ -276,6 +275,7 @@ def main():
   # register any other cli options defined by the plugins, also configure the plugins
   opts.extend(ArticleCacheFactory.register_cli_options())
   opts.extend(ArticleStoreFactory.register_cli_options())
+  opts.extend(NotifierFactory.register_cli_options())
 
   # create and run the command by using a callback
   cmd = click.Command(

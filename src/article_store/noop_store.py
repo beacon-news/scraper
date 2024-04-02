@@ -1,5 +1,4 @@
 from article_store import ArticleStore
-import click
 from cli_aware import ClickCliAware
 
 class NoOpArticleStore(ArticleStore):
@@ -14,9 +13,3 @@ class NoOpArticleStoreFactory(ClickCliAware):
   @staticmethod
   def create() -> NoOpArticleStore:
     return NoOpArticleStore()
-
-# class NoOpArticleStoreFactory:
-
-#   @staticmethod
-#   def create() -> NoOpArticleStore:
-#     return NoOpArticleStore()
