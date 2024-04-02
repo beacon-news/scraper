@@ -183,13 +183,19 @@ def run_proc(**kwargs):
     config = ConfigFactory.from_file(config_path)
     config_list.append(config)
     
-    options = ScrapeOptions(
-      article_limit=kwargs['limit'],
-      log_level=kwargs['log_level'],
-      article_cache=ArticleCacheFactory.create(),
-      article_stores=ArticleStoreFactory.create(),
-    )
-    options_list.append(options)
+    options_kwargs = {
+      "article_limit": kwargs['limit'],
+      "log_level": kwargs['log_level'],
+      "article_cache_factory": ArticleCacheFactory,
+      "article_store_factory": ArticleStoreFactory,
+    }
+    # options = ScrapeOptions(
+    #   article_limit=kwargs['limit'],
+    #   log_level=kwargs['log_level'],
+    #   article_cache=ArticleCacheFactory.create(),
+    #   article_stores=ArticleStoreFactory.create(),
+    # )
+    options_list.append(options_kwargs)
   
   notifier = NotifierFactory.create()
   ScraperManager(notifier, proc_count).scrape(config_list, options_list)

@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import logging
 from datetime import datetime
 from datetime import timedelta
-from multiprocessing import Queue
+import multiprocessing as mp
 
 from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig
 from utils import log_utils
@@ -50,20 +50,26 @@ class Scraper:
     self.id = str(id) # just to make sure
     self.__init_logging(logging.INFO)
   
-  def scrape_articles_from_queue(self, input_queue: Queue, output_queue: Queue):
+  def scrape_articles_from_queue(self, input_queue: mp.Queue, output_queue: mp.Queue):
     self.log.info("listening for work")
-    config, scrape_options = input_queue.get()
-    while config is not None:
+    config, scrape_options_kwargs = input_queue.get()
+    while config is not None and scrape_options_kwargs is not None:
+      scrape_options = ScrapeOptions(
+        article_limit=scrape_options_kwargs['article_limit'],
+        log_level=scrape_options_kwargs['log_level'],
+        article_cache=scrape_options_kwargs['article_cache_factory'].create(),
+        article_stores=scrape_options_kwargs['article_store_factory'].create(),
+      )
       self.scrape_articles(config, scrape_options, output_queue)
       self.log.info("listening for work")
-      config, scrape_options = input_queue.get()
+      config, scrape_options_kwargs = input_queue.get()
     self.log.info("got None work, exiting")
 
   def scrape_articles(
       self, 
       config: Config, 
       scrape_options: ScrapeOptions,
-      queue: Queue,
+      queue: mp.Queue,
   ) -> None:
 
     self.log.setLevel(scrape_options.log_level)
@@ -123,6 +129,8 @@ class Scraper:
     # return the ids to parent process if there is one
     if queue is not None:
       # TODO: could hang indefinitely
+      # TODO: why do we have every item duplicated sometimes??? 
+      self.log.info(f"adding {len(scraped_meta)} items to parent's queue")
       queue.put(scraped_meta)
     
   def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:

@@ -18,7 +18,7 @@ class ScraperManager:
     self.notifier = notifier
 
   # TODO: unify config and scrape options
-  def scrape(self, configs: list[Config], scrape_options: list[ScrapeOptions]):
+  def scrape(self, configs: list[Config], scrape_options_kwargs_list: list[dict]):
     
     proc_count = self.proc_count
     if len(configs) < self.proc_count:
@@ -42,14 +42,22 @@ class ScraperManager:
       self.log.info(f"started process {name}")
     
     # put the work into the queue
+    # scrape options will be constructed in the child process to avoid unpicklable objects
     for i in range(len(configs)):
-      input_queue.put((configs[i], scrape_options[i]))
+      input_queue.put((configs[i], scrape_options_kwargs_list[i]))
 
-    # wait for process responses
+    # wait for process responses, only store the unique ones
+    ids = set()
     scraped_meta = []
     for i in range(len(configs)):
       # TODO: could hang indefinitely
-      scraped_meta.extend(output_queue.get())
+      meta = output_queue.get()
+      for item in meta:
+        if item["id"] in ids:
+          continue
+
+        ids.add(item["id"])
+        scraped_meta.append(item)
     
     # send 'done' messages
     for i in range(proc_count):
@@ -65,9 +73,9 @@ class ScraperManager:
     self.log.info(f"all scraper processes have finished")
 
     # send a "done" notification
-    self.log.info(f"scraped articles: {scraped_meta}")
     if len(scraped_meta) == 0:
       self.log.warning("no scraped article ids found, no notification sent")
       return 
 
     self.notifier.send_done_notification(scraped_meta)
+    self.log.info(f"sent a 'done' notification for {len(scraped_meta)} articles")

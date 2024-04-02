@@ -73,7 +73,7 @@ class RedisStreamsNotifierFactory(ClickCliAware):
       click.Option(
         param_decls=["--redis-streams-notfier-stream"],
         help="Redis streams notifier stream name",
-        default="scraped_articles",
+        default="scraper_articles",
         envvar="NOTIFIER_REDIS_STREAM_NAME",
         show_default=True,
         show_envvar=True,
