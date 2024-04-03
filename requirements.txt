@@ -2,9 +2,8 @@
 beautifulsoup4==4.12.2
 soupsieve==2.5
 click==8.1.7
-
-# scheduler's dependency --> should also be a separate package
-schedule==1.2.1
-
-# runtime dependency of the filesystem config loader --> should be moved to the plugin package in the future
+hiredis==2.3.2
+python-dateutil==2.8.2
 PyYAML==6.0.1
+redis==5.0.2
+pymongo==4.6.2

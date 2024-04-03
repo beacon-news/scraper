@@ -36,10 +36,10 @@ class RedisArticleCache(ArticleCache):
 
 
   def contains(self, article_url: str) -> bool:
-    return bool(self.__redis.exists(article_url))
+    return bool(self.__redis.exists(f"scraper_cache:article:{article_url}"))
 
   def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
-    key = f"article:{article_url}"
+    key = f"scraper_cache:article:{article_url}"
     self.__redis.set(key, "", ex=ttl)
   
   def remove(self, article_url: str) -> None:
