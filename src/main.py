@@ -189,12 +189,6 @@ def run_proc(**kwargs):
       "article_cache_factory": ArticleCacheFactory,
       "article_store_factory": ArticleStoreFactory,
     }
-    # options = ScrapeOptions(
-    #   article_limit=kwargs['limit'],
-    #   log_level=kwargs['log_level'],
-    #   article_cache=ArticleCacheFactory.create(),
-    #   article_stores=ArticleStoreFactory.create(),
-    # )
     options_list.append(options_kwargs)
   
   notifier = NotifierFactory.create()
