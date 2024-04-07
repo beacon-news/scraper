@@ -1,5 +1,6 @@
 import json
 import yaml
+import jsonpath_ng.ext as jsonpath_ng_ext
 
 
 # TODO: use pydantic models instead of implementing the same thing, but worse... 
@@ -261,7 +262,7 @@ class LeafComponentSelectorConfig:
 class ExtractConfig:
   """
   {
-    "type": "text" | "html" | "attribute",
+    "type": "text" | "html" | "attribute" | "jsonpath",
   }
   This class contains the common parts for the extractor types.
   """
@@ -270,9 +271,14 @@ class ExtractConfig:
   prop_type_value_text = "text"
   prop_type_value_attribute = "attribute"
   prop_type_value_html = "html"
-  prop_type_values = [prop_type_value_text, prop_type_value_attribute, prop_type_value_html]
+  prop_type_value_jsonpath = "jsonpath"
+  prop_type_values = [
+    prop_type_value_text, 
+    prop_type_value_attribute,
+    prop_type_value_html,
+    prop_type_value_jsonpath
+  ]
 
-  # prop_modifiers = "modifiers"
 
   def __init__(self, config: dict = {}):
     # try to get the type, extract text by default
@@ -288,6 +294,8 @@ class ExtractConfig:
     # so don't create specific extractor for text and html
     if self.type == ExtractConfig.prop_type_value_attribute:
       self.specific_extractor_config = AttributeExtractConfig(config)
+    elif self.type == ExtractConfig.prop_type_value_jsonpath:
+      self.specific_extractor_config = JsonpathExtractConfig(config)
 
 
 class AttributeExtractConfig:
@@ -303,6 +311,23 @@ class AttributeExtractConfig:
   def __init__(self, config: dict):
     self.attribute_key = config.get(AttributeExtractConfig.prop_attribute_key)
     ConfigValidator.must_have_type(AttributeExtractConfig.prop_attribute_key, self.attribute_key, str)
+
+class JsonpathExtractConfig:
+  """
+  ExtractConfig | 
+  {
+    "path": str,
+  }
+  This class contains the specific parts for the "jsonpath" extractor type.
+  """
+  prop_jsonpath_path = "path"
+
+  def __init__(self, config: dict):
+    self.jsonpath_path = config.get(JsonpathExtractConfig.prop_jsonpath_path)
+    ConfigValidator.must_have_type(JsonpathExtractConfig.prop_jsonpath_path, self.jsonpath_path, str)
+
+    # create and store the expression here
+    self.jsonpath_expr = jsonpath_ng_ext.parse(self.jsonpath_path)
   
 class ModifierConfig:
   """

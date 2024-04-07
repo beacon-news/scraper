@@ -598,6 +598,60 @@ class TestProcessSelector:
         ]
       }
     ),
+    (
+      # test jsonpath extractor for single and multi-valued return values
+      """
+      <html>
+        <script type="application/json">
+          {
+            "foo": {
+              "bar": [
+                {
+                  "baz": "blah1"
+                },
+                {
+                  "baz": "blah2"
+                }  
+              ],
+              "other_key": 4242
+            },
+            "another_key": 42
+          }
+        </script>
+      </html>
+      """,
+      {
+        "key": "json",
+        "children": [
+          {
+            "key": "single",
+            "selector": "script",
+            "extract": {
+              "type": "jsonpath",
+              "path": "$.foo.other_key"
+            }
+          },
+          {
+            "key": "multiple",
+            "selector": "script",
+            "extract": {
+              "type": "jsonpath",
+              "path": "$.foo..baz"
+            }
+          },
+        ]
+      },
+      {
+        "json": [
+          {
+            "single": "4242",
+          },
+          {
+            "multiple": ["blah1", "blah2"],
+          }
+        ],
+      }
+    ),
   ])
   def test_selector_result(self, html: str, selector_config: dict, expected: dict):
     s = ComponentSelectorConfig(selector_config)

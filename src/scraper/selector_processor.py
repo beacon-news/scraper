@@ -5,6 +5,9 @@ import logging
 from dateutil.parser import parse
 from datetime import datetime
 import re
+import jsonpath_ng
+import json
+
 
   
 class SelectorProcessorException(Exception): pass
@@ -263,7 +266,25 @@ class LeafSelectorProcessor:
     return results
   
   @staticmethod
-  def process_modifiers(config: LeafComponentSelectorConfig, info: str):
+  def process_modifiers(config: LeafComponentSelectorConfig, info: str | list[str]) -> str | list[str] | None:
+    if type(info) == list:
+
+      modified_info = []
+      for i in info:
+        res = LeafSelectorProcessor.process_modifiers_single_info(config, i)
+        if res is None:
+          continue
+        modified_info.append(res)
+
+      if len(modified_info) == 0:
+        return None
+      return modified_info
+    
+    return LeafSelectorProcessor.process_modifiers_single_info(config, info)
+
+  
+  @staticmethod
+  def process_modifiers_single_info(config: LeafComponentSelectorConfig, info: str) -> str | None:
     for m in config.modifiers:
       try:
         info = ModifierProcessor.process(m, info)
@@ -295,7 +316,7 @@ class ExtractorProcessor:
     )
 
   @staticmethod
-  def process(config: ExtractConfig, element: Tag):
+  def process(config: ExtractConfig, element: Tag) -> str | list[str] | None:
     # try to process with the specific processor
     try:
       if config.type == ExtractConfig.prop_type_value_text:
@@ -304,15 +325,20 @@ class ExtractorProcessor:
         info = HtmlExtractorProcessor.process(element)
       elif config.type == ExtractConfig.prop_type_value_attribute:
         info = AttributeExtractorProcessor.process(config, element)
-    except Exception as e:
+      elif config.type == ExtractConfig.prop_type_value_jsonpath:
+        info = JsonpathExtractorProcessor.process(config, element)
+    except Exception:
       ExtractorProcessor.log.exception(f"failed to process extractor: {config.type}")
       return None
 
     if info is None:
       return None
-    
-    # remove whitespace from start and end
-    info = info.strip()
+    elif type(info) == list:
+      # remove whitespace from start and end
+      info = [i.strip() for i in info]
+    else:
+      # remove whitespace from start and end
+      info = info.strip()
     
     return info
 
@@ -333,6 +359,21 @@ class AttributeExtractorProcessor:
   @staticmethod
   def process(config: ExtractConfig, element: Tag) -> str | None: 
     return element.get(config.specific_extractor_config.attribute_key)
+
+class JsonpathExtractorProcessor:
+  
+  @staticmethod
+  def process(config: ExtractConfig, element: Tag) -> str | list[str] | None: 
+    json_dict = json.loads(element.text)
+    jsonpath_expr: jsonpath_ng.jsonpath.Child = config.specific_extractor_config.jsonpath_expr
+    matches = [str(match.value) for match in jsonpath_expr.find(json_dict)]
+
+    if len(matches) == 0:
+      return None
+    elif len(matches) == 1:
+      return matches[0]
+    return matches
+    
 
 class ModifierProcessor:
 
