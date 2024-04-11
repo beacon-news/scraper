@@ -16,7 +16,7 @@ class ArticleCache(ABC):
   
 
   @abstractmethod
-  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=1)) -> None:
+  def store(self, article_url: str, ttl: timedelta = timedelta(weeks=4)) -> None:
     """
     Stores the "article_url" with a TTL indicating that 
     the article has been scraped, and the scraped information 

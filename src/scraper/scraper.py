@@ -117,8 +117,8 @@ class Scraper:
             # TODO: change this dict to be a data class
             scraped_meta.append({
               "id": article_id,
-              "url": article_url,
-              "scrape_time": article_result["scrape_time"],
+              # "url": article_url,
+              # "scrape_time": article_result["scrape_time"],
             })
           except Exception:
             self.log.exception(f"error while trying to store article {article_url}")
