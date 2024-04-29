@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 import redis
 from article_store import ArticleStore
@@ -100,20 +99,3 @@ class RedisStreamArticleStoreFactory(ClickCliAware):
       config["port"],
       config["stream_name"],
     )
-
-
-# class RedisStreamArticleStoreFactory:
-
-#   @staticmethod
-#   def create() -> RedisStreamArticleStore:
-
-#     host = os.getenv("REDIS_STREAM_STORE_HOST", "localhost")
-#     port = os.getenv("REDIS_STREAM_STORE_PORT", 6379)
-#     stream_name = os.getenv("REDIS_STREAM_STORE_STREAM", "scraped_articles")
-#     log_level = os.getenv("REDIS_STREAM_STORE_LOG_LEVEL", "INFO")
-#     log_level = logging._nameToLevel[log_level]
-
-#     logging.info(f"using redis stream article store with host {host}, port {port}, stream name {stream_name}")
-
-#     return RedisStreamArticleStore(host, port, stream_name, log_level)
-

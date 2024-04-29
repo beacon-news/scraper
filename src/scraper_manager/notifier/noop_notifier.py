@@ -2,8 +2,10 @@ from scraper_manager.notifier import Notifier
 from cli_aware import ClickCliAware
 
 class NoOpNotifier(Notifier):
+
   def send_done_notification(self, ids: list[str]):
-    print("no-op notifier sending notification")
+    pass
+
 
 class NoOpNotifierFactory(ClickCliAware):
 

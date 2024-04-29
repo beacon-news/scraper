@@ -1,5 +1,5 @@
 from scraper.config import Config
-from scraper.scraper import ScrapeOptions, Scraper
+from scraper.scraper import Scraper
 import multiprocessing as mp
 from utils import log_utils
 from scraper_manager.notifier import *
@@ -72,7 +72,6 @@ class ScraperManager:
       self.log.info(f"process {name} finished")
     self.log.info(f"all scraper processes have finished")
 
-    # send a "done" notification
     if len(scraped_meta) == 0:
       self.log.warning("no scraped article ids found, no notification sent")
       return 
