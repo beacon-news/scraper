@@ -7,3 +7,4 @@ python-dateutil==2.8.2
 PyYAML==6.0.1
 redis==5.0.2
 pymongo==4.6.2
+jsonpath-ng==1.6.1

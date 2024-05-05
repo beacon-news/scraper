@@ -100,8 +100,9 @@ class Scraper:
           }
         
         # add other keys and the result
-        # article id is a hash of the url and the content
-        article_id = hashlib.sha1(f"{article_url}-{scrape_result}".encode()).hexdigest() 
+        # article id is a hash of the domain of the url and the content
+        url_domain = urlparse(article_url).netloc 
+        article_id = hashlib.sha1(f"{url_domain}-{scrape_result}".encode()).hexdigest() 
         article_result |= {
           "id":  article_id,
           "url": article_url,
