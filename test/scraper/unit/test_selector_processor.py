@@ -653,8 +653,88 @@ class TestProcessSelector:
       }
     ),
   ])
-  def test_selector_result(self, html: str, selector_config: dict, expected: dict):
+  def test_selector_result_no_common_selectors(
+    self, 
+    html: str, 
+    selector_config: dict, 
+    expected: dict,
+  ):
     s = ComponentSelectorConfig(selector_config)
-    result = SelectorProcessor.process_html(s, html)
+    result = SelectorProcessor.process_html(s, [], html)
     assert result == expected
 
+
+  @pytest.mark.parametrize("html, common_selectors, selector_config, expected", [
+    (
+      # test common selector reference
+      """
+      <html>
+        <p id=1>blah1 foo blah2</p>
+        <p>This string doesn't contain only bar</p>
+        <p>blah4 string</p>
+      </html>
+      """,
+      [
+        {
+          "name": "first-p",
+          "selector": {
+            "key": "first-p-key",
+            "selector": "[id='1']",
+          } 
+        },
+      ],
+      {
+        "common_selector": "first-p"
+      },
+      {
+        "first-p-key": "blah1 foo blah2"
+      }
+    )
+  ])
+  def test_selector_result_with_common_selectors(
+    self, 
+    html: str, 
+    common_selectors: list[dict], 
+    selector_config: dict, 
+    expected: dict,
+  ):
+    cs = CommonComponentSelectorsConfig(common_selectors)
+    s = ComponentSelectorConfig(selector_config)
+    
+    result = SelectorProcessor.process_html(s, cs, html)
+    assert result == expected
+
+  @pytest.mark.parametrize("common_selectors, selector_config, expectation", [
+    (
+      # test infinite common selector reference
+      [
+        {
+          "name": "first-p",
+          "selector": {
+            "common_selector": "first-p"
+          } 
+        },
+      ],
+      {
+        "common_selector": "first-p"
+      },
+      pytest.raises(ConfigValidationException),
+    ),
+  ])
+  def test_infinite_common_selector_ref_raises(
+    self, 
+    common_selectors: list[dict], 
+    selector_config: dict, 
+    expectation,
+  ):
+    # tests for selector loops
+    with expectation:
+      ScrapeConfig({
+        "urls": ["test"],
+        "url_selectors": {
+          "key": "test",
+        },
+        "common_selectors": common_selectors,
+        "selectors": selector_config,
+      })
+    

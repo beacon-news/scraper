@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 import multiprocessing as mp
 
-from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig
+from scraper.config import Config, ScrapeConfig, ComponentSelectorConfig, CommonComponentSelectorsConfig
 from utils import log_utils
 from utils import http_utils
 from scraper.selector_processor import SelectorProcessor, set_log_levels
@@ -87,7 +87,7 @@ class Scraper:
       for article_url in urls:
         self.log.info(f"trying to scrape {article_url}")
 
-        scrape_result = self._scrape_article(scrape_config.selectors, article_url)
+        scrape_result = self._scrape_article(scrape_config.selectors, scrape_config.common_selectors, article_url)
         if scrape_result is None:
           self.log.warning(f"no article components found for {article_url}")
           continue
@@ -134,13 +134,18 @@ class Scraper:
       self.log.info(f"adding {len(scraped_meta)} items to parent's queue")
       queue.put(scraped_meta)
     
-  def _scrape_article(self, selector: ComponentSelectorConfig, article_url: str) -> dict | None:
+  def _scrape_article(
+    self, 
+    selector: ComponentSelectorConfig, 
+    common_selectors: CommonComponentSelectorsConfig,
+    article_url: str,
+  ) -> dict | None:
     try:
       req = http_utils.create_request(article_url)
       page = request.urlopen(req, timeout=15)
       html = page.read().decode("utf-8")
       self.log.debug("trying to select article components")
-      return SelectorProcessor.process_html(selector, html)
+      return SelectorProcessor.process_html(selector, common_selectors, html)
     except Exception:
       self.log.exception(f"error while trying to scrape {article_url}")
       return None
@@ -167,7 +172,7 @@ class Scraper:
         html = page.read().decode("utf-8")
 
         # select all urls using the specified selectors
-        url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, html)
+        url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, scrape_config.common_selectors, html)
         if url_dict is None:
           self.log.warning(f"url_selectors found no urls for {url}")
           continue

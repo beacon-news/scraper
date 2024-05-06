@@ -42,17 +42,31 @@ class SelectorProcessor:
     )
   
   @staticmethod
-  def process_html(config: ComponentSelectorConfig, html: str) -> dict | None:
+  def process_html(
+    config: ComponentSelectorConfig, 
+    common_selectors: CommonComponentSelectorsConfig,   
+    html: str,
+  ) -> dict | None:
     root = BeautifulSoup(html, "html.parser").select_one("html")
     if root is None:
       SelectorProcessor.log.error(f"no root 'html' element found when processing selector: {config.key}")
       return None
-    return SelectorProcessor.process(config, root)
+    return SelectorProcessor.process(config, common_selectors, root)
 
   @staticmethod
-  def process(config: ComponentSelectorConfig, element: Tag) -> dict | None:
+  def process(
+    config: ComponentSelectorConfig,
+    common_selectors: CommonComponentSelectorsConfig,
+    element: Tag,
+  ) -> dict | None:
     if element is None:
       return None
+
+
+    # Note: infinite loop check should have happended when parsing the config
+    while config.type == ComponentSelectorConfig.type_ref:
+      config = common_selectors.common_selectors[config.common_selector]
+
 
     # decides to select only the first, or all matches based on the 'select' config
     # delegates to a specific selector processor based on the config (single, multi, leaf)
@@ -61,13 +75,13 @@ class SelectorProcessor:
 
     process = {
       ComponentSelectorConfig.prop_select_value_first: {
-        ComponentSelectorConfig.type_single: lambda config, x : SingleChildSelectorProcessor.select_one(config, x),
-        ComponentSelectorConfig.type_multi: lambda config, x : MultiChildSelectorProcessor.select_one(config, x),
+        ComponentSelectorConfig.type_single: lambda config, x : SingleChildSelectorProcessor.select_one(config, common_selectors, x),
+        ComponentSelectorConfig.type_multi: lambda config, x : MultiChildSelectorProcessor.select_one(config, common_selectors, x),
         ComponentSelectorConfig.type_leaf: lambda config, x : LeafSelectorProcessor.select_one(config, x),
       },
       ComponentSelectorConfig.prop_select_value_all: {
-        ComponentSelectorConfig.type_single: lambda config, x : SingleChildSelectorProcessor.select_all(config, x),
-        ComponentSelectorConfig.type_multi: lambda config, x : MultiChildSelectorProcessor.select_all(config, x),
+        ComponentSelectorConfig.type_single: lambda config, x : SingleChildSelectorProcessor.select_all(config, common_selectors, x),
+        ComponentSelectorConfig.type_multi: lambda config, x : MultiChildSelectorProcessor.select_all(config, common_selectors, x),
         ComponentSelectorConfig.type_leaf: lambda config, x : LeafSelectorProcessor.select_all(config, x),
       }
     }
@@ -117,7 +131,7 @@ class SingleChildSelectorProcessor:
     )
 
   @staticmethod
-  def select_one(config: ComponentSelectorConfig, element: Tag) -> dict | None:
+  def select_one(config: ComponentSelectorConfig, common_selectors: CommonComponentSelectorsConfig, element: Tag) -> dict | None:
     SingleChildSelectorProcessor.log.debug(f"selecting one for key: {config.key}, css_selector: {config.css_selector}")
 
     # select the first match from the html
@@ -125,10 +139,10 @@ class SingleChildSelectorProcessor:
     if elem is None:
       return None
     
-    return SelectorProcessor.process(config.child_selector_config, elem)
+    return SelectorProcessor.process(config.child_selector_config, common_selectors, elem)
   
   @staticmethod
-  def select_all(config: ComponentSelectorConfig, element: Tag) -> list | None:
+  def select_all(config: ComponentSelectorConfig, common_selectors: CommonComponentSelectorsConfig, element: Tag) -> list | None:
     SingleChildSelectorProcessor.log.debug(f"selecting all for key: {config.key}, css_selector: {config.css_selector}")
 
     # select all matches from the html
@@ -138,7 +152,7 @@ class SingleChildSelectorProcessor:
     
     results = []
     for elem in elements: 
-      res = SelectorProcessor.process(config.child_selector_config, elem)
+      res = SelectorProcessor.process(config.child_selector_config, common_selectors, elem)
       if res is not None:
         results.append(res)
 
@@ -163,7 +177,7 @@ class MultiChildSelectorProcessor:
     )
 
   @staticmethod
-  def select_one(config: ComponentSelectorConfig, element: Tag) -> list | None:
+  def select_one(config: ComponentSelectorConfig, common_selectors: CommonComponentSelectorsConfig, element: Tag) -> list | None:
     MultiChildSelectorProcessor.log.debug(f"selecting one for key: {config.key}, css_selector: {config.css_selector}")
 
     elem = element.select_one(config.css_selector)
@@ -172,7 +186,7 @@ class MultiChildSelectorProcessor:
 
     results = []
     for c in config.child_selector_configs:
-      res = SelectorProcessor.process(c, element)
+      res = SelectorProcessor.process(c, common_selectors, element)
       if res is not None:
         results.append(res)
     
@@ -182,7 +196,7 @@ class MultiChildSelectorProcessor:
     return results
   
   @staticmethod
-  def select_all(config: ComponentSelectorConfig, element: Tag) -> list | None:
+  def select_all(config: ComponentSelectorConfig, common_selectors: CommonComponentSelectorsConfig, element: Tag) -> list | None:
     MultiChildSelectorProcessor.log.debug(f"selecting all for key: {config.key}, css_selector: {config.css_selector}")
 
     elements = element.select(config.css_selector)
@@ -192,7 +206,7 @@ class MultiChildSelectorProcessor:
     results = []
     for elem in elements: 
       for c in config.child_selector_configs:
-        res = SelectorProcessor.process(c, elem)
+        res = SelectorProcessor.process(c, common_selectors, elem)
         if res is not None:
           results.append(res)
 

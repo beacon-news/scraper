@@ -107,6 +107,7 @@ class ScrapeConfig:
     <optional> "metadata": dict,
     "urls": [str],
     "url_selectors": ComponentSelector,
+    "common_selectors": CommonComponentSelector,
     "selectors": ComponentSelector,
   }
   """
@@ -114,31 +115,108 @@ class ScrapeConfig:
   prop_metadata = "metadata"
   prop_urls = "urls"
   prop_url_selectors = "url_selectors"
+  prop_common_selectors = "common_selectors"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
+    # metadata
     self.metadata = scrape_config_dict.get(ScrapeConfig.prop_metadata)
     if self.metadata is not None:
       ConfigValidator.must_have_type(ScrapeConfig.prop_metadata, self.metadata, dict)
 
+    # urls
     self.urls: str = scrape_config_dict.get(ScrapeConfig.prop_urls)
     ConfigValidator.must_have_type(ScrapeConfig.prop_urls, self.urls, list)
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_urls, self.urls)
     ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_urls, self.urls, [str])
 
+    # url selectors
     url_selectors = scrape_config_dict.get(ScrapeConfig.prop_url_selectors)
     ConfigValidator.must_not_be_none(ScrapeConfig.prop_url_selectors, url_selectors)
     ConfigValidator.must_not_be_empty(ScrapeConfig.prop_url_selectors, url_selectors)
     ConfigValidator.must_have_type(ScrapeConfig.prop_url_selectors, url_selectors, dict) 
     self.url_selectors = ComponentSelectorConfig(url_selectors)
 
+    # common selectors dict
+    common_selectors = scrape_config_dict.get(ScrapeConfig.prop_common_selectors)
+    if common_selectors is not None:
+      ConfigValidator.must_have_type(ScrapeConfig.prop_common_selectors, common_selectors, list)
+      ConfigValidator.must_not_be_empty(ScrapeConfig.prop_common_selectors, common_selectors)
+      ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_common_selectors, common_selectors, [dict])
+    else:
+      common_selectors = []
+    self.common_selectors = CommonComponentSelectorsConfig(common_selectors)
+
+    # selectors object
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
     ConfigValidator.must_have_type(ScrapeConfig.prop_selectors, selectors, dict)
     self.selectors = ComponentSelectorConfig(selectors)
 
+    self.check_loops(self.selectors)
+  
+  def check_loops(self, s, visited = set()):
+
+    if s.type == ComponentSelectorConfig.type_ref:
+      original_name = s.common_selector
+      next = self.common_selectors.common_selectors[s.common_selector]
+    elif s.type == ComponentSelectorConfig.type_single:
+      original_name = s.key
+      next = s.child
+    elif s.type == ComponentSelectorConfig.type_leaf:
+      # leaf nodes cannot be part of a loop, adding to the visited doesn't make much sense... 
+      return
+    elif s.type == ComponentSelectorConfig.type_multi:
+      for next in s.children:
+        self.check_loops(next, visited) 
+      return
+
+    if s in visited:
+      raise ConfigValidationException(f"selector loop detected: {original_name}") 
+    visited.add(s)
+    self.check_loops(next, visited)
+
+class CommonComponentSelectorsConfig:
+  """
+  maintains a dict of common component selectors
+  """
+
+  def __init__(self, configs: list[dict]):
+
+    self.common_selectors = {}
+    for config in configs:
+      common_selector = CommonComponentSelectorConfig(config) 
+      self.common_selectors[common_selector.name] = common_selector.selector
+    
+    # check if there are any loops
+
+
+class CommonComponentSelectorConfig:
+  """
+  common selector dict format, can be used by selectors with referring to the 'name'
+  {
+    "name": str,
+    "selector": ComponentSelectorConfig
+  }
+  """
+
+  prop_name = "name"
+  prop_selector = "selector"
+
+  def __init__(self, config: dict):
+    self.name: str = config.get(CommonComponentSelectorConfig.prop_name)
+    ConfigValidator.must_have_type(CommonComponentSelectorConfig.prop_name, self.name, str)
+
+    selector = config.get(CommonComponentSelectorConfig.prop_selector)
+    ConfigValidator.must_not_be_none(CommonComponentSelectorConfig.prop_selector, selector)
+    ConfigValidator.must_have_type(CommonComponentSelectorConfig.prop_selector, selector, dict)
+    self.selector = ComponentSelectorConfig(selector)
+
+
 class ComponentSelectorConfig:
   """
   {
+    "common_selector": str,
+    ---------------------------- OR (common_selector's presence refers to a common selector, ignoring other attributes) 
     "key": str,
     "selector": str,
     "select": "first" | "all",
@@ -149,7 +227,10 @@ class ComponentSelectorConfig:
 
   This class contains the common parts for the selector types.
   """
-  # common props for all selector types
+  # if present, it refers to a common selector and all other attributes are ignored
+  prop_common_selector = "common_selector" 
+
+  # common props for most selector types
   prop_key = "key"
   prop_css_selector = "selector"
 
@@ -169,8 +250,21 @@ class ComponentSelectorConfig:
   type_single = 0 
   type_multi = 1
   type_leaf = 2
+  type_ref = 3 # reference to a common selector
 
   def __init__(self, config: dict):
+
+    # common selector can be empty
+    common_selector = config.get(ComponentSelectorConfig.prop_common_selector)
+    if (common_selector is not None):
+      # if this selector is only a reference to a common selector, store the reference and return
+      ConfigValidator.must_have_type(ComponentSelectorConfig.prop_common_selector, common_selector, str) 
+      self.type = ComponentSelectorConfig.type_ref
+      self.common_selector = common_selector
+      return
+    else:
+      self.common_selector = None
+
     # key is mandatory
     self.key = config.get(ComponentSelectorConfig.prop_key)
     ConfigValidator.must_have_type(ComponentSelectorConfig.prop_key, self.key, str)
