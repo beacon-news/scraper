@@ -78,6 +78,7 @@ class Scraper:
     for scrape_config in config.scrape_configs:
       scrape_config_to_article_urls[scrape_config] = self._find_article_urls(
         scrape_config, 
+        config.common_selectors,
         scrape_options,
       )
 
@@ -87,7 +88,7 @@ class Scraper:
       for article_url in urls:
         self.log.info(f"trying to scrape {article_url}")
 
-        scrape_result = self._scrape_article(scrape_config.selectors, scrape_config.common_selectors, article_url)
+        scrape_result = self._scrape_article(scrape_config.selectors, config.common_selectors, article_url)
         if scrape_result is None:
           self.log.warning(f"no article components found for {article_url}")
           continue
@@ -118,12 +119,13 @@ class Scraper:
             # TODO: change this dict to be a data class
             scraped_meta.append({
               "id": article_id,
-              # "url": article_url,
-              # "scrape_time": article_result["scrape_time"],
             })
           except Exception:
             self.log.exception(f"error while trying to store article {article_url}")
             continue
+        
+        # store in cache after knowing scraping was successful
+        scrape_options.article_cache.store(article_url, scrape_options.ttl)
 
         self.log.info(f"finished scraping {article_url}, id {article_id}")  
     
@@ -154,6 +156,7 @@ class Scraper:
   def _find_article_urls(
       self, 
       scrape_config: ScrapeConfig, 
+      common_selectors: CommonComponentSelectorsConfig,
       scrape_options: ScrapeOptions,
   ) -> list:
     urls = scrape_config.urls
@@ -172,7 +175,7 @@ class Scraper:
         html = page.read().decode("utf-8")
 
         # select all urls using the specified selectors
-        url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, scrape_config.common_selectors, html)
+        url_dict = SelectorProcessor.process_html(scrape_config.url_selectors, common_selectors, html)
         if url_dict is None:
           self.log.warning(f"url_selectors found no urls for {url}")
           continue
@@ -193,7 +196,6 @@ class Scraper:
             self.log.info(f"url {absolute_url} already in cache, skipping")
             continue
 
-          scrape_options.article_cache.store(absolute_url, scrape_options.ttl)
           scraped_urls.add(absolute_url)
 
           if len(scraped_urls) >= scrape_options.article_limit:

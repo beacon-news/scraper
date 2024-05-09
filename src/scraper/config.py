@@ -44,30 +44,69 @@ class Config:
   top-level config
   {
     "version": "1.0.0",
-    "pages": ScrapeConfig[]
+    "pages": ScrapeConfig[],
+    <optional> "common_selectors": CommonComponentSelectorsConfig,
   }
   """
 
   prop_version = "version"
   prop_pages = "pages"
+  prop_common_selectors = "common_selectors"
 
   def __init__(self, config: dict, file_path: str = None):
 
     # set the path to the config file
     self.file_path = file_path
 
+    # version
     # only support version 1.0.0 for now 
     version = config.get(Config.prop_version)
     ConfigValidator.must_have_type(Config.prop_version, version, str)
     ConfigValidator.must_have_value(Config.prop_version, version, ["1.0.0"])
 
+    # scrape configs
     scrape_config = config.get(Config.prop_pages)
     ConfigValidator.must_have_type(Config.prop_pages, scrape_config, list)
     ConfigValidator.must_not_be_empty(Config.prop_pages, scrape_config)
     self.scrape_configs: list[ScrapeConfig] = []
-    for config in scrape_config:
-      self.scrape_configs.append(ScrapeConfig(config))
+    for sc in scrape_config:
+      self.scrape_configs.append(ScrapeConfig(sc))
 
+    # common selectors dict
+    common_selectors = config.get(Config.prop_common_selectors)
+    if common_selectors is not None:
+      ConfigValidator.must_have_type(Config.prop_common_selectors, common_selectors, list)
+      ConfigValidator.must_not_be_empty(Config.prop_common_selectors, common_selectors)
+      ConfigValidator.iterable_must_have_types(Config.prop_common_selectors, common_selectors, [dict])
+    else:
+      common_selectors = []
+    self.common_selectors = CommonComponentSelectorsConfig(common_selectors)
+    print(self.common_selectors.common_selectors)
+
+    # check for loops after initializing everything
+    for sc in self.scrape_configs:
+      self.check_loops(sc.selectors)
+  
+  def check_loops(self, s, visited = set()):
+
+    if s.type == ComponentSelectorConfig.type_ref:
+      name = s.common_selector
+      next = self.common_selectors.common_selectors[s.common_selector]
+    elif s.type == ComponentSelectorConfig.type_single:
+      name = s.key
+      next = s.child_selector_config
+    elif s.type == ComponentSelectorConfig.type_leaf:
+      # leaf nodes don't refer to other selectors, it's allowed to reach them from multiple paths
+      return
+    elif s.type == ComponentSelectorConfig.type_multi:
+      for next in s.child_selector_configs:
+        self.check_loops(next, visited) 
+      return
+
+    if s in visited:
+      raise ConfigValidationException(f"selector loop detected: {name}") 
+    visited.add(s)
+    self.check_loops(next, visited)
 
 class ConfigFactory:
 
@@ -107,7 +146,6 @@ class ScrapeConfig:
     <optional> "metadata": dict,
     "urls": [str],
     "url_selectors": ComponentSelector,
-    "common_selectors": CommonComponentSelector,
     "selectors": ComponentSelector,
   }
   """
@@ -115,7 +153,6 @@ class ScrapeConfig:
   prop_metadata = "metadata"
   prop_urls = "urls"
   prop_url_selectors = "url_selectors"
-  prop_common_selectors = "common_selectors"
   prop_selectors = "selectors"
 
   def __init__(self, scrape_config_dict: dict):
@@ -137,43 +174,11 @@ class ScrapeConfig:
     ConfigValidator.must_have_type(ScrapeConfig.prop_url_selectors, url_selectors, dict) 
     self.url_selectors = ComponentSelectorConfig(url_selectors)
 
-    # common selectors dict
-    common_selectors = scrape_config_dict.get(ScrapeConfig.prop_common_selectors)
-    if common_selectors is not None:
-      ConfigValidator.must_have_type(ScrapeConfig.prop_common_selectors, common_selectors, list)
-      ConfigValidator.must_not_be_empty(ScrapeConfig.prop_common_selectors, common_selectors)
-      ConfigValidator.iterable_must_have_types(ScrapeConfig.prop_common_selectors, common_selectors, [dict])
-    else:
-      common_selectors = []
-    self.common_selectors = CommonComponentSelectorsConfig(common_selectors)
-
     # selectors object
     selectors = scrape_config_dict.get(ScrapeConfig.prop_selectors)
     ConfigValidator.must_have_type(ScrapeConfig.prop_selectors, selectors, dict)
     self.selectors = ComponentSelectorConfig(selectors)
 
-    self.check_loops(self.selectors)
-  
-  def check_loops(self, s, visited = set()):
-
-    if s.type == ComponentSelectorConfig.type_ref:
-      original_name = s.common_selector
-      next = self.common_selectors.common_selectors[s.common_selector]
-    elif s.type == ComponentSelectorConfig.type_single:
-      original_name = s.key
-      next = s.child
-    elif s.type == ComponentSelectorConfig.type_leaf:
-      # leaf nodes cannot be part of a loop, adding to the visited doesn't make much sense... 
-      return
-    elif s.type == ComponentSelectorConfig.type_multi:
-      for next in s.children:
-        self.check_loops(next, visited) 
-      return
-
-    if s in visited:
-      raise ConfigValidationException(f"selector loop detected: {original_name}") 
-    visited.add(s)
-    self.check_loops(next, visited)
 
 class CommonComponentSelectorsConfig:
   """
@@ -187,8 +192,6 @@ class CommonComponentSelectorsConfig:
       common_selector = CommonComponentSelectorConfig(config) 
       self.common_selectors[common_selector.name] = common_selector.selector
     
-    # check if there are any loops
-
 
 class CommonComponentSelectorConfig:
   """
@@ -473,4 +476,3 @@ class RegexModifierConfig:
     else:
       # by default return the original string
       self.return_type = RegexModifierConfig.prop_return_original
-

@@ -729,12 +729,18 @@ class TestProcessSelector:
   ):
     # tests for selector loops
     with expectation:
-      ScrapeConfig({
-        "urls": ["test"],
-        "url_selectors": {
-          "key": "test",
-        },
+      print(common_selectors)
+      Config({
+        "version": "1.0.0",
+        "pages": [
+          {
+            "urls": ["test"],
+            "url_selectors": {
+              "key": "test",
+            },
+            "selectors": selector_config,
+          }
+        ],
         "common_selectors": common_selectors,
-        "selectors": selector_config,
       })
     
