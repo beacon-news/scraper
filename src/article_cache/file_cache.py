@@ -4,7 +4,6 @@ from pathlib import Path
 from article_cache import ArticleCache
 from utils import log_utils
 import logging
-import os
 import click
 from cli_aware import ClickCliAware
 
@@ -101,12 +100,6 @@ class FileArticleCache(ArticleCache):
     }
     fdesc.write(json.dumps(d) + "\n")
   
-  def remove(self, article_url: str) -> None:
-    self.log.debug(f"removing {article_url} from cache")
-    if article_url in self.__cache:
-      del self.__cache[article_url]
-      self.__recreate_cache()
- 
 
 class FileArticleCacheFactory(ClickCliAware):
 
@@ -135,14 +128,3 @@ class FileArticleCacheFactory(ClickCliAware):
       config["path"],
     )     
     
-# class FileArticleCacheFactory:
-
-#   @staticmethod
-#   def create() -> ArticleCache:
-#     path = os.getenv("FILE_CACHE_PATH", "cache")
-#     log_level = os.getenv("FILE_CACHE_LOG_LEVEL", "INFO")
-#     log_level = logging._nameToLevel[log_level]
-
-#     logging.info(f"using article cache with path {path}")
-
-#     return FileArticleCache(path, log_level)

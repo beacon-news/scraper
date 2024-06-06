@@ -38,7 +38,7 @@ class ConfigValidator:
 class ConfigValidationException(Exception):
   pass
 
-# TODO: every class should check its own type? (check if dict or list, don't let the parent class to do this?)
+# TODO: every class should check its own type? (check if dict or list, don't let the parent class do this?)
 class Config:
   """
   top-level config
@@ -96,7 +96,8 @@ class Config:
       name = s.key
       next = s.child_selector_config
     elif s.type == ComponentSelectorConfig.type_leaf:
-      # leaf nodes don't refer to other selectors, it's allowed to reach them from multiple paths
+      # leaf nodes don't refer to other selectors, 
+      # it's allowed to reach them from multiple paths, so just return
       return
     elif s.type == ComponentSelectorConfig.type_multi:
       for next in s.child_selector_configs:

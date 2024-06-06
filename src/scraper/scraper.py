@@ -131,9 +131,8 @@ class Scraper:
     
     # return the ids to parent process if there is one
     if queue is not None:
-      # TODO: could hang indefinitely
-      # TODO: why do we have every item duplicated sometimes??? 
       self.log.info(f"adding {len(scraped_meta)} items to parent's queue")
+      # TODO: could hang indefinitely
       queue.put(scraped_meta)
     
   def _scrape_article(

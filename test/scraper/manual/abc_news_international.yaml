@@ -2,11 +2,7 @@ version: "1.0.0"
 pages:
 - url: https://abcnews.go.com/International
   url_patterns:
-  - ".*/International/wireStory/.*-[0-9]+"
   - ".*/International/.*/story?id=.*"
-
-  # href="https://abcnews.go.com/International/wireStory/christmas-eve-worshippers-face-security-screening-cologne-cathedral-105894820"
-  # href="https://abcnews.go.com/International/functional-hospitals-northern-gaza-9-left-south/story?id=105867484"
 
   selectors:
     key: article

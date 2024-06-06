@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 import redis
 from datetime import timedelta
@@ -42,10 +41,6 @@ class RedisArticleCache(ArticleCache):
     key = f"scraper_cache:article:{article_url}"
     self.__redis.set(key, "", ex=ttl)
   
-  def remove(self, article_url: str) -> None:
-    key = f"article:{article_url}"
-    self.__redis.delete(key)
-
 
 class RedisArticleCacheFactory(ClickCliAware):
 
@@ -86,17 +81,3 @@ class RedisArticleCacheFactory(ClickCliAware):
       config["host"],
       config["port"],
     )
-
-# class RedisArticleCacheFactory:
-
-#   @staticmethod
-#   def create() -> RedisArticleCache:
-
-#     host = os.getenv("REDIS_CACHE_HOST", "localhost")
-#     port = os.getenv("REDIS_CACHE_PORT", 6379)
-#     log_level = os.getenv("REDIS_CACHE_LOG_LEVEL", "INFO")
-#     log_level = logging._nameToLevel[log_level]
-
-#     logging.info(f"using redis article cache with host {host}, port {port}")
-
-#     return RedisArticleCache(host, port, log_level)
