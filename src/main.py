@@ -10,20 +10,6 @@ from utils import log_utils
 import click
 import multiprocessing as mp
 
-
-# this will be run when invoking the command
-def run(**kwargs):
-  config = ConfigFactory.from_file(kwargs['config'])
-  options = ScrapeOptions(
-    article_limit=kwargs['limit'],
-    log_level=kwargs['log_level'],
-    article_cache=ArticleCacheFactory.create(),
-    article_stores=ArticleStoreFactory.create(),
-  )
-  scraper = Scraper()
-  scraper.scrape_articles(config, options)
-
-
 log = log_utils.create_console_logger("main")
 
 def run_proc(**kwargs):
